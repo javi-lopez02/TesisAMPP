@@ -1,15 +1,16 @@
 {
   "name": "prisma-ts-example",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "migrate": "npx prisma migrate dev",
-    "init": "npx prisma generate && npx prisma migrate dev",
-    "studio": "npx prisma studio"
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "start": "bun dist/index.js",
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "studio": "prisma studio"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.7.0",
     "@types/node-cron": "^3.0.11",
     "axios": "^1.15.1",
@@ -45,6 +47,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "nodemon": "^3.1.14",
+    "pg": "^8.20.0",
     "qrcode-terminal": "^0.12.0",
     "sharp": "^0.34.5",
     "ts-node-dev": "^2.0.0",

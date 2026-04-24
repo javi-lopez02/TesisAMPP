@@ -1,25 +1,19 @@
-export interface TokenPayload {
-  id: string;
-  iat: number;
-  exp: number;
-}
+import { Rol } from "./generated/prisma";
 
-export interface File {
-  fieldname: string
-  originalname: string
-  encoding: string
-  mimetype: string
-  destination: string
-  filename: string
-  path: string
-  size: number
-}
-
+// Extender Request para incluir usuario autenticado
 declare global {
   namespace Express {
     interface Request {
-      userId: string
-      userName: string
+      usuario?: {
+        id: string;
+        correo: string;
+        rol: Rol;
+        delegaciaId?: string;
+      };
+      cookies: {
+        accessToken?: string;
+        refreshToken?: string;
+      };
     }
   }
 }

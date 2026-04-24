@@ -11,3 +11,398 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ============================================================================
+// MODELO DE USUARIOS Y AUTENTICACIÓN
+// ============================================================================
+
+model Usuario {
+  id          String   @id @default(uuid())
+  correo      String   @unique
+  contrasenia String
+  nombre      String
+  apellidos   String
+  rol         Rol      @default(DELEGADO)
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  delegacia               Delegacia?         @relation(fields: [delegaciaId], references: [id])
+  delegaciaId             String?
+  solicitudes             Solicitud[]
+  asignacionesResponsable Asignacion[]       @relation("ResponsableAsignacion")
+  reportes                ReporteConsumo[]
+  movimientoTanques       MovimientoTanque[]
+  vehiculos               Vehiculo[]
+  asignacionesChofer      Asignacion[]
+  auditorias              Auditoria[]
+
+  @@index([correo])
+  @@index([rol])
+}
+
+enum Rol {
+  ADMINISTRADOR
+  DELEGADO
+  PRESIDENTE_CONSEJO
+  CHOFER
+  SUPERVISOR
+}
+
+// ============================================================================
+// MODELO DE ORGANIZACIÓN TERRITORIAL
+// ============================================================================
+
+model ConsejoPopular {
+  id        String   @id @default(uuid())
+  nombre    String   @unique
+  codigo    String   @unique
+  direccion String?
+  telefono  String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  delegacias  Delegacia[]
+  solicitudes Solicitud[]
+  rutas       Ruta[]
+  puntoRutas  PuntoRuta[]
+
+  @@index([nombre])
+}
+
+model Delegacia {
+  id             String   @id @default(uuid())
+  nombre         String
+  codigo         String   @unique
+  direccion      String?
+  coordenadasLat Float?
+  coordenadasLng Float?
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  consejoPopular   ConsejoPopular @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId String
+  usuario          Usuario[]
+  solicitudes      Solicitud[]
+
+  @@index([consejoPopularId])
+  @@index([codigo])
+}
+
+// ============================================================================
+// MODELO DE GESTIÓN DE COMBUSTIBLE
+// ============================================================================
+
+model TipoCombustible {
+  id             String   @id @default(uuid())
+  nombre         String   @unique // Diésel, Gasolina 95, Gasolina 97
+  codigo         String   @unique
+  precioPorLitro Decimal  @db.Decimal(10, 2)
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  tanques      TanqueCombustible[]
+  asignaciones Asignacion[]
+  vehiculos    Vehiculo[]
+
+  @@index([nombre])
+}
+
+model TanqueCombustible {
+  id              String   @id @default(uuid())
+  nombre          String // Tanque Principal, Tanque Secundario
+  capacidadTotal  Decimal  @db.Decimal(10, 2) // En litros
+  capacidadActual Decimal  @db.Decimal(10, 2) // En litros
+  ubicacion       String?
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  tipoCombustible   TipoCombustible    @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String
+  movimientos       MovimientoTanque[]
+
+  @@index([tipoCombustibleId])
+}
+
+model MovimientoTanque {
+  id            String         @id @default(uuid())
+  tipo          TipoMovimiento
+  cantidad      Decimal        @db.Decimal(10, 2) // En litros
+  saldoAnterior Decimal        @db.Decimal(10, 2)
+  saldoNuevo    Decimal        @db.Decimal(10, 2)
+  observaciones String?
+  createdAt     DateTime       @default(now())
+
+  // Relaciones
+  tanque     TanqueCombustible @relation(fields: [tanqueId], references: [id])
+  tanqueId   String
+  usuario    Usuario           @relation(fields: [usuarioId], references: [id])
+  usuarioId  String
+  asignacion Asignacion[]
+
+  @@index([tanqueId])
+  @@index([createdAt])
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+  AJUSTE
+  MERMA
+}
+
+// ============================================================================
+// MODELO DE GESTIÓN DE VEHÍCULOS
+// ============================================================================
+
+model Vehiculo {
+  id                String          @id @default(uuid())
+  placa             String          @unique
+  marca             String
+  modelo            String?
+  anio              Int?
+  color             String?
+  capacidadTanque   Decimal         @db.Decimal(10, 2)
+  tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String
+  estado            EstadoVehiculo  @default(DISPONIBLE)
+  kilometraje       Decimal         @db.Decimal(10, 2)
+  activo            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relaciones
+  chofer         Usuario?        @relation(fields: [choferId], references: [id])
+  choferId       String?
+  asignaciones   Asignacion[]
+  mantenimientos Mantenimiento[]
+
+  @@index([placa])
+  @@index([estado])
+}
+
+enum EstadoVehiculo {
+  DISPONIBLE
+  EN_USO
+  MANTENIMIENTO
+  FUERA_DE_SERVICIO
+}
+
+model Mantenimiento {
+  id          String   @id @default(uuid())
+  tipo        String // Preventivo, Correctivo
+  descripcion String
+  costo       Decimal  @db.Decimal(10, 2)
+  kilometraje Decimal  @db.Decimal(10, 2)
+  fecha       DateTime
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id])
+  vehiculoId String
+
+  @@index([vehiculoId])
+  @@index([fecha])
+}
+
+// ============================================================================
+// MODELO DE SOLICITUDES Y ASIGNACIONES
+// ============================================================================
+
+model Solicitud {
+  id              String          @id @default(uuid())
+  codigo          String          @unique // Formato: SOL-YYYYMMDD-XXX
+  descripcion     String
+  actividad       String // Tipo de actividad: Fiscalización, Visita, Reunión
+  fechaSolicitada DateTime
+  fechaRequerida  DateTime
+  cantidadLitros  Decimal         @db.Decimal(10, 2)
+  estado          EstadoSolicitud @default(PENDIENTE)
+  observaciones   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relaciones
+  usuario          Usuario         @relation(fields: [usuarioId], references: [id])
+  usuarioId        String
+  delegacia        Delegacia?      @relation(fields: [delegaciaId], references: [id])
+  delegaciaId      String?
+  consejoPopular   ConsejoPopular? @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId String?
+  ruta             Ruta[]
+  asignacion       Asignacion?
+
+  @@index([estado])
+  @@index([fechaSolicitada])
+  @@index([usuarioId])
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  EN_PROCESO
+  COMPLETADA
+  CANCELADA
+}
+
+model Asignacion {
+  id              String           @id @default(uuid())
+  codigo          String           @unique // Formato: ASN-YYYYMMDD-XXX
+  cantidadLitros  Decimal          @db.Decimal(10, 2)
+  odometroInicial Decimal          @db.Decimal(10, 2)
+  odometroFinal   Decimal?         @db.Decimal(10, 2)
+  fechaAsignacion DateTime         @default(now())
+  fechaDevolucion DateTime?
+  estado          EstadoAsignacion @default(ASIGNADO)
+  observaciones   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relaciones
+  solicitud          Solicitud         @relation(fields: [solicitudId], references: [id])
+  solicitudId        String            @unique
+  vehiculo           Vehiculo          @relation(fields: [vehiculoId], references: [id])
+  vehiculoId         String
+  tipoCombustible    TipoCombustible   @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId  String
+  responsable        Usuario           @relation("ResponsableAsignacion", fields: [responsableId], references: [id])
+  responsableId      String
+  chofer             Usuario?          @relation(fields: [choferId], references: [id])
+  choferId           String?
+  ruta               Ruta?             @relation(fields: [rutaId], references: [id])
+  movimientoTanque   MovimientoTanque? @relation(fields: [movimientoTanqueId], references: [id])
+  reportes           ReporteConsumo[]
+  rutaId             String?
+  movimientoTanqueId String?
+
+  @@index([estado])
+  @@index([fechaAsignacion])
+  @@index([vehiculoId])
+}
+
+enum EstadoAsignacion {
+  ASIGNADO
+  EN_USO
+  DEVUELTO
+  CANCELADO
+}
+
+// ============================================================================
+// MODELO DE RUTAS Y DESTINOS
+// ============================================================================
+
+model Ruta {
+  id             String   @id @default(uuid())
+  nombre         String
+  descripcion    String?
+  distanciaTotal Decimal  @db.Decimal(10, 2) // En kilómetros
+  tiempoEstimado Int? // En minutos
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  solicitud         Solicitud?       @relation(fields: [solicitudId], references: [id])
+  asignacion        Asignacion[]
+  consejosPopulares ConsejoPopular[]
+  puntos            PuntoRuta[]
+  solicitudId       String?
+
+  @@index([activa])
+}
+
+model PuntoRuta {
+  id             String   @id @default(uuid())
+  orden          Int
+  nombre         String
+  direccion      String?
+  coordenadasLat Float?
+  coordenadasLng Float?
+  tiempoEstimado Int? // En minutos desde el punto anterior
+  createdAt      DateTime @default(now())
+
+  // Relaciones
+  ruta             Ruta            @relation(fields: [rutaId], references: [id])
+  rutaId           String
+  consejoPopular   ConsejoPopular? @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId String?
+
+  @@index([rutaId])
+  @@index([orden])
+}
+
+// ============================================================================
+// MODELO DE REPORTES Y CONTROL
+// ============================================================================
+
+model ReporteConsumo {
+  id            String   @id @default(uuid())
+  codigo        String   @unique // Formato: RPT-YYYYMMDD-XXX
+  consumoReal   Decimal  @db.Decimal(10, 2) // En litros
+  rendimiento   Decimal  @db.Decimal(10, 2) // km/litro
+  observaciones String?
+  fechaReporte  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relaciones
+  asignacion   Asignacion @relation(fields: [asignacionId], references: [id])
+  asignacionId String
+  usuario      Usuario    @relation(fields: [usuarioId], references: [id])
+  usuarioId    String
+
+  @@index([asignacionId])
+  @@index([fechaReporte])
+}
+
+model Auditoria {
+  id              String     @id @default(uuid())
+  tabla           String
+  registroId      String
+  accion          TipoAccion
+  datosAnteriores Json?
+  datosNuevos     Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime   @default(now())
+
+  // Relaciones
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+
+  @@index([tabla])
+  @@index([createdAt])
+  @@index([usuarioId])
+}
+
+enum TipoAccion {
+  CREAR
+  ACTUALIZAR
+  ELIMINAR
+  CONSULTAR
+}
+
+// ============================================================================
+// MODELO DE CONFIGURACIÓN Y PARÁMETROS
+// ============================================================================
+
+model Configuracion {
+  id          String   @id @default(uuid())
+  clave       String   @unique
+  valor       String
+  descripcion String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clave])
+}
