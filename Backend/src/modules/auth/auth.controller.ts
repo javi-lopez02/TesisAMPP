@@ -9,6 +9,8 @@ export const AuthController = {
       const data = registerSchema.parse(req.body);
       const result = await AuthService.register(data);
 
+      console.log(result.usuario);
+
       // Generar tokens
       const jwtPayload: JwtPayload = {
         sub: result.usuario.id,
@@ -18,13 +20,13 @@ export const AuthController = {
 
       const tokens = generateTokens(jwtPayload);
 
-      res.cookie("access-token", tokens.accessToken, {
+      res.cookie("accessToken", tokens.accessToken, {
         httpOnly: false,
         secure: true,
         sameSite: "none",
       });
 
-      res.cookie("refresh-token", tokens.refreshToken, {
+      res.cookie("refreshToken", tokens.refreshToken, {
         httpOnly: false,
         secure: true,
         sameSite: "none",
@@ -33,7 +35,7 @@ export const AuthController = {
       res.status(201).json({
         success: true,
         message: "Usuario registrado exitosamente",
-        data: result,
+        data: result.usuario,
       });
     } catch (error) {
       next(error);
@@ -54,13 +56,13 @@ export const AuthController = {
 
       const tokens = generateTokens(jwtPayload);
 
-      res.cookie("access-token", tokens.accessToken, {
+      res.cookie("accessToken", tokens.accessToken, {
         httpOnly: false,
         secure: true,
         sameSite: "none",
       });
 
-      res.cookie("refresh-token", tokens.refreshToken, {
+      res.cookie("refreshToken", tokens.refreshToken, {
         httpOnly: false,
         secure: true,
         sameSite: "none",
@@ -69,7 +71,7 @@ export const AuthController = {
       res.json({
         success: true,
         message: "Login exitoso",
-        data: result,
+        data: result.usuario,
       });
     } catch (error) {
       next(error);
@@ -115,18 +117,21 @@ export const AuthController = {
 
   logout: async (req: Request, res: Response) => {
     // Limpiar cookies
-    res.clearCookie("accessToken", {
-      httpOnly: false,
-      secure: true,
-      sameSite: "none",
-    });
-    res.clearCookie("refreshToken", {
-      httpOnly: false,
-      secure: true,
-      sameSite: "none",
-    });
+    try {
+      res.clearCookie("accessToken", {
+        httpOnly: false,
+        secure: true,
+        sameSite: "none",
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: false,
+        secure: true,
+        sameSite: "none",
+      });
 
-    res.json({ success: true, message: "Sesión cerrada" });
+      res.json({ success: true, message: "Sesión cerrada" });
+    } catch (error) {
+    }
   },
 
   me: async (req: Request, res: Response) => {

@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken, JwtPayload } from "../utils/jwt";
 import { prisma } from "../config/prisma";
 
-
 export const authenticate = async (
   req: Request,
   res: Response,
@@ -25,6 +24,8 @@ export const authenticate = async (
       where: { id: payload.sub },
       select: {
         id: true,
+        nombre: true,
+        apellidos: true,
         correo: true,
         rol: true,
         delegaciaId: true,
@@ -41,7 +42,10 @@ export const authenticate = async (
     // Inyectar usuario en la request
     req.usuario = {
       id: usuario.id,
+      nombre: usuario.nombre,
+      apellidos: usuario.apellidos,
       correo: usuario.correo,
+      activo: usuario.activo,
       rol: usuario.rol,
       delegaciaId: usuario.delegaciaId ?? undefined,
     };
