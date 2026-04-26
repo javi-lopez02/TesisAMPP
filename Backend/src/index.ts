@@ -7,7 +7,13 @@ import * as dotenv from "dotenv";
 import path from "path";
 
 import { authRoutes } from "./modules/auth/auth.routes.js";
-import { send } from "process";
+import { consejoPopularRoutes } from "./modules/consejo-popular/consejo-popular.routes.js";
+import { delegaciaRoutes } from "./modules/delegancia/deleganica.routes.js";
+import { vehiculoRoutes } from "./modules/vehiculo/vehiculo.routes.js";
+import { tipoCombustibleRoutes } from "./modules/tipo-combustible/tipo-combustible.routes.js";
+import { tanqueCombustibleRoutes } from "./modules/tanque-combustible/tanque-combustible.routes.js";
+import { movimientoTanqueRoutes } from "./modules/movimiento-tanque/movimiento-tanque.routes.js";
+import { mantenimientoRoutes } from "./modules/mantenimiento/mantenimiento.routes.js";
 
 dotenv.config();
 const port = 4000;
@@ -33,6 +39,13 @@ app.use(cookieParser());
 app.use("/public", express.static(path.join(__dirname, "/Upload")));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/consejos-populares", consejoPopularRoutes);
+app.use("/api/vehiculos", vehiculoRoutes);
+app.use("/api/delegacias", delegaciaRoutes);
+app.use("/api/tipos-combustible", tipoCombustibleRoutes);
+app.use("/api/tanques", tanqueCombustibleRoutes);
+app.use("/api/movimientos-tanque", movimientoTanqueRoutes);
+app.use("/api/mantenimientos", mantenimientoRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("🔴 Error:", err);
@@ -81,4 +94,3 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 app.listen(port, () => {
   console.log(`Server on port ${port}`);
 });
-

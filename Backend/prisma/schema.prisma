@@ -58,8 +58,6 @@ model ConsejoPopular {
   id        String   @id @default(uuid())
   nombre    String   @unique
   codigo    String   @unique
-  direccion String?
-  telefono  String?
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -74,15 +72,13 @@ model ConsejoPopular {
 }
 
 model Delegacia {
-  id             String   @id @default(uuid())
-  nombre         String
-  codigo         String   @unique
-  direccion      String?
-  coordenadasLat Float?
-  coordenadasLng Float?
-  activo         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        String   @id @default(uuid())
+  nombre    String
+  codigo    String   @unique
+  direccion String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relaciones
   consejoPopular   ConsejoPopular @relation(fields: [consejoPopularId], references: [id])
@@ -169,8 +165,6 @@ model Vehiculo {
   placa             String          @unique
   marca             String
   modelo            String?
-  anio              Int?
-  color             String?
   capacidadTanque   Decimal         @db.Decimal(10, 2)
   tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
   tipoCombustibleId String
@@ -203,6 +197,7 @@ model Mantenimiento {
   descripcion String
   costo       Decimal  @db.Decimal(10, 2)
   kilometraje Decimal  @db.Decimal(10, 2)
+  activo      Boolean  @default(true)
   fecha       DateTime
   createdAt   DateTime @default(now())
 
@@ -326,8 +321,6 @@ model PuntoRuta {
   orden          Int
   nombre         String
   direccion      String?
-  coordenadasLat Float?
-  coordenadasLng Float?
   tiempoEstimado Int? // En minutos desde el punto anterior
   createdAt      DateTime @default(now())
 
