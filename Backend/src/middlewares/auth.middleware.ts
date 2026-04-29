@@ -28,7 +28,6 @@ export const authenticate = async (
         apellidos: true,
         correo: true,
         rol: true,
-        delegaciaId: true,
         activo: true,
       },
     });
@@ -47,7 +46,6 @@ export const authenticate = async (
       correo: usuario.correo,
       activo: usuario.activo,
       rol: usuario.rol,
-      delegaciaId: usuario.delegaciaId ?? undefined,
     };
 
     next();

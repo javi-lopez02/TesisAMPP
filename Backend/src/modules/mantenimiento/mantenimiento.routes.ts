@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/roles.middleware";
-import { Rol } from "../../generated/prisma";
+import { Rol } from "../../generated/prisma/enums";
 import { MantenimientoController } from "./mantenimiento.controller";
 
 const router = Router();

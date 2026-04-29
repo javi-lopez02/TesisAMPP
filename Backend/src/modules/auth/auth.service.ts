@@ -1,7 +1,7 @@
 import { prisma } from "../../config/prisma";
 import { hashPassword, verifyPassword } from "../../utils/password";
 import { generateTokens, verifyToken, JwtPayload } from "../../utils/jwt";
-import { Rol } from "../../generated/prisma";
+import { Rol } from "../../generated/prisma/enums";
 import { RegisterInput, LoginInput } from "./auth.dto";
 
 export const AuthService = {
@@ -25,7 +25,6 @@ export const AuthService = {
         nombre: data.nombre,
         apellidos: data.apellidos,
         rol: data.rol || Rol.DELEGADO,
-        delegaciaId: data.delegaciaId,
       },
       select: {
         id: true,
@@ -56,7 +55,12 @@ export const AuthService = {
     const usuario = await prisma.usuario.findUnique({
       where: { correo },
       include: {
-        delegacia: { select: { id: true, nombre: true, codigo: true } },
+        consejoPopularPresidente: {
+          select: { id: true, nombre: true, codigo: true },
+        },
+        circunscripcionDelegado: {
+          select: { id: true, nombre: true, codigo: true },
+        },
       },
     });
 

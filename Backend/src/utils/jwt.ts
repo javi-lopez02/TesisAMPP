@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { Rol } from "../generated/prisma";
+import { Rol } from "../generated/prisma/enums";
 
 export interface JwtPayload {
   sub: string; // ID del usuario
@@ -26,4 +26,11 @@ export const verifyToken = (token: string): JwtPayload | null => {
   } catch {
     return null;
   }
+};
+
+export const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  path: "/",
 };

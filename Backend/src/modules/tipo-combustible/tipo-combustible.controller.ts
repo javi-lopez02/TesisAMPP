@@ -45,7 +45,11 @@ export const TipoCombustibleController = {
         req.params.id as string,
         data,
       );
-      res.json({ success: true, message: "Actualizado", tipo });
+      res.json({
+        success: true,
+        message: "Tipo de combustible actualizado",
+        tipo,
+      });
     } catch (error) {
       next(error);
     }
@@ -54,7 +58,10 @@ export const TipoCombustibleController = {
   softDelete: async (req: Request, res: Response, next: NextFunction) => {
     try {
       await TipoCombustibleService.softDelete(req.params.id as string);
-      res.json({ success: true, message: "Eliminado lógicamente" });
+      res.json({
+        success: true,
+        message: "Tipo de combustible eliminado lógicamente",
+      });
     } catch (error) {
       next(error);
     }

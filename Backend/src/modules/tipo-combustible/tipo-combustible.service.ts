@@ -1,5 +1,5 @@
 import { prisma } from "../../config/prisma";
-import { numberToDecimal } from "../../utils/decimal";
+import { numberToDecimal, decimalToNumber } from "../../utils/decimal";
 import {
   CreateTipoCombustibleInput,
   UpdateTipoCombustibleInput,
@@ -11,31 +11,21 @@ export const TipoCombustibleService = {
       where: { activo: true },
       orderBy: { nombre: "asc" },
       include: {
-        tanques: {
-          where: { activo: true },
+        _count: {
           select: {
-            id: true,
-            nombre: true,
-            capacidadActual: true,
-            capacidadTotal: true,
+            vehiculos: { where: { activo: true } },
+            inventarioCombustibles: true,
+            movimientoCombustibles: true,
+            solicituds: true,
+            asignacions: true,
           },
-        },
-        vehiculos: {
-          where: { activo: true },
-          select: { id: true, placa: true, marca: true },
         },
       },
     });
 
-    // Convertir Decimals a números para JSON
     return tipos.map((t) => ({
       ...t,
-      precioPorLitro: t.precioPorLitro.toNumber(),
-      tanques: t.tanques.map((tk) => ({
-        ...tk,
-        capacidadActual: tk.capacidadActual.toNumber(),
-        capacidadTotal: tk.capacidadTotal.toNumber(),
-      })),
+      precioPorLitro: decimalToNumber(t.precioPorLitro),
     }));
   },
 
@@ -43,34 +33,34 @@ export const TipoCombustibleService = {
     const tipo = await prisma.tipoCombustible.findUnique({
       where: { id, activo: true },
       include: {
-        tanques: { where: { activo: true } },
         vehiculos: {
           where: { activo: true },
-          select: { id: true, placa: true },
+          select: { id: true, placa: true, marca: true, estado: true },
+        },
+        inventarioCombustibles: {
+          include: {
+            asamblea: { select: { id: true, nombre: true, codigo: true } },
+          },
         },
       },
     });
-    if (!tipo) throw new Error("Tipo de combustible no encontrado");
+    if (!tipo) throw new Error("Tipo de combustible no encontrado o eliminado");
 
     return {
       ...tipo,
-      precioPorLitro: tipo.precioPorLitro.toNumber(),
-      tanques: tipo.tanques.map((tk) => ({
-        ...tk,
-        capacidadActual: tk.capacidadActual.toNumber(),
-        capacidadTotal: tk.capacidadTotal.toNumber(),
-      })),
+      precioPorLitro: decimalToNumber(tipo.precioPorLitro),
     };
   },
 
   async create(data: CreateTipoCombustibleInput) {
     try {
-      return await prisma.tipoCombustible.create({
+      const tipo = await prisma.tipoCombustible.create({
         data: {
           ...data,
           precioPorLitro: numberToDecimal(data.precioPorLitro),
         },
       });
+      return { ...tipo, precioPorLitro: decimalToNumber(tipo.precioPorLitro) };
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El nombre o código ya existe");
@@ -85,29 +75,50 @@ export const TipoCombustibleService = {
         updateData.precioPorLitro = numberToDecimal(data.precioPorLitro);
       }
 
-      return await prisma.tipoCombustible.update({
+      const tipo = await prisma.tipoCombustible.update({
         where: { id, activo: true },
         data: updateData,
       });
+      return { ...tipo, precioPorLitro: decimalToNumber(tipo.precioPorLitro) };
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El nombre o código ya está en uso");
       if (error.code === "P2025")
-        throw new Error("Tipo de combustible no encontrado");
+        throw new Error("Tipo de combustible no encontrado o eliminado");
       throw error;
     }
   },
 
   async softDelete(id: string) {
-    // Validar que no tenga tanques activos
-    const tanquesActivos = await prisma.tanqueCombustible.count({
-      where: { tipoCombustibleId: id, activo: true },
-    });
-    if (tanquesActivos > 0) {
+    // Validar relaciones activas antes de permitir la eliminación lógica
+    const [vehiculosActivos, inventarios, solicitudesActivas] =
+      await Promise.all([
+        prisma.vehiculo.count({
+          where: { tipoCombustibleId: id, activo: true },
+        }),
+        prisma.inventarioCombustible.count({
+          where: { tipoCombustibleId: id },
+        }),
+        prisma.solicitud.count({
+          where: {
+            tipoCombustibleId: id,
+            estado: { in: ["PENDIENTE", "APROBADA", "EN_PROCESO"] },
+          },
+        }),
+      ]);
+
+    if (vehiculosActivos > 0)
       throw new Error(
-        `No se puede eliminar: tiene ${tanquesActivos} tanques activos asignados`,
+        `No se puede eliminar: tiene ${vehiculosActivos} vehículos activos asignados`,
       );
-    }
+    if (inventarios > 0)
+      throw new Error(
+        `No se puede eliminar: tiene ${inventarios} registros de inventario vinculados`,
+      );
+    if (solicitudesActivas > 0)
+      throw new Error(
+        `No se puede eliminar: tiene ${solicitudesActivas} solicitudes en proceso`,
+      );
 
     return await prisma.tipoCombustible.update({
       where: { id },

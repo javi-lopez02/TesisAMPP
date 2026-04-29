@@ -8,12 +8,18 @@ import path from "path";
 
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { consejoPopularRoutes } from "./modules/consejo-popular/consejo-popular.routes.js";
-import { delegaciaRoutes } from "./modules/delegancia/deleganica.routes.js";
+import { circunscripcionRoutes } from "./modules/circunscripcion/circunscripcion.routes.js";
+
 import { vehiculoRoutes } from "./modules/vehiculo/vehiculo.routes.js";
 import { tipoCombustibleRoutes } from "./modules/tipo-combustible/tipo-combustible.routes.js";
-import { tanqueCombustibleRoutes } from "./modules/tanque-combustible/tanque-combustible.routes.js";
-import { movimientoTanqueRoutes } from "./modules/movimiento-tanque/movimiento-tanque.routes.js";
 import { mantenimientoRoutes } from "./modules/mantenimiento/mantenimiento.routes.js";
+import { inventarioRoutes } from "./modules/inventario/inventario.routes.js";
+import { movimientoCombustibleRoutes } from "./modules/movimiento-combustible/movimiento-combustible.routes.js";
+import { zonaRoutes } from "./modules/zona/zona.routes.js";
+import { cdrRoutes } from "./modules/cdr/cdr.routes.js";
+import { rutaRoutes } from "./modules/ruta/ruta.routes.js";
+import { puntoRutaRoutes } from "./modules/punto-ruta/punto-ruta.routes.js";
+import { asambleaRoutes } from "./modules/ampp/ampp.routes.js";
 
 dotenv.config();
 const port = 4000;
@@ -39,13 +45,22 @@ app.use(cookieParser());
 app.use("/public", express.static(path.join(__dirname, "/Upload")));
 
 app.use("/api/auth", authRoutes);
-app.use("/api/consejos-populares", consejoPopularRoutes);
-app.use("/api/vehiculos", vehiculoRoutes);
-app.use("/api/delegacias", delegaciaRoutes);
-app.use("/api/tipos-combustible", tipoCombustibleRoutes);
-app.use("/api/tanques", tanqueCombustibleRoutes);
-app.use("/api/movimientos-tanque", movimientoTanqueRoutes);
-app.use("/api/mantenimientos", mantenimientoRoutes);
+
+app.use("/api/consejo-popular", consejoPopularRoutes);
+app.use("/api/circunscripcion", circunscripcionRoutes);
+app.use("/api/zonas", zonaRoutes);
+app.use("/api/cdrs", cdrRoutes);
+
+app.use("/api/rutas", rutaRoutes);
+app.use("/api/puntos-ruta", puntoRutaRoutes);
+
+app.use("/api/vehiculo", vehiculoRoutes);
+app.use("/api/mantenimiento", mantenimientoRoutes);
+app.use("/api/tipo-combustible", tipoCombustibleRoutes);
+
+app.use("/api/asamblea", asambleaRoutes);
+app.use("/api/movimiento-combustible", movimientoCombustibleRoutes);
+app.use("/api/inventario-combustible", inventarioRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("🔴 Error:", err);

@@ -10,7 +10,11 @@
     "start": "bun dist/index.js",
     "generate": "prisma generate",
     "push": "prisma db push",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
   },
   "keywords": [],
   "author": "",

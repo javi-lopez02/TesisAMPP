@@ -13,7 +13,19 @@ datasource db {
 }
 
 // ============================================================================
-// MODELO DE USUARIOS Y AUTENTICACIÓN
+// ENUM: ROLES DEL SISTEMA
+// ============================================================================
+
+enum Rol {
+  ADMINISTRADOR // Acceso total al sistema
+  DELEGADO // Delegado de Circunscripción
+  PRESIDENTE_CONSEJO // Presidente de Consejo Popular
+  CHOFER // Conductor asignado a vehículos
+  SUPERVISOR // Supervisa operaciones y reportes
+}
+
+// ============================================================================
+// MODELO: USUARIO (Actualizado)
 // ============================================================================
 
 model Usuario {
@@ -27,162 +39,190 @@ model Usuario {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relaciones
-  delegacia               Delegacia?         @relation(fields: [delegaciaId], references: [id])
-  delegaciaId             String?
-  solicitudes             Solicitud[]
-  asignacionesResponsable Asignacion[]       @relation("ResponsableAsignacion")
-  reportes                ReporteConsumo[]
-  movimientoTanques       MovimientoTanque[]
-  vehiculos               Vehiculo[]
-  asignacionesChofer      Asignacion[]
-  auditorias              Auditoria[]
+  // 🔗 Relaciones (se irán completando)
+  consejoPopularPresidente ConsejoPopular?         @relation("PresidenteConsejo")
+  circunscripcionDelegado  Circunscripcion?        @relation("DelegadoCircunscripcion")
+  vehiculos                Vehiculo[]
+  movimientoCombustibles   MovimientoCombustible[]
+  solicitudes              Solicitud[]
+  asignacions              Asignacion[]            @relation("ResponsableAsignacion")
+  reporteConsumos          ReporteConsumo[]
+  auditorias               Auditoria[]
 
   @@index([correo])
   @@index([rol])
-}
-
-enum Rol {
-  ADMINISTRADOR
-  DELEGADO
-  PRESIDENTE_CONSEJO
-  CHOFER
-  SUPERVISOR
+  @@index([activo])
 }
 
 // ============================================================================
-// MODELO DE ORGANIZACIÓN TERRITORIAL
+// MODELO: CONSEJO POPULAR (Actualizado)
 // ============================================================================
 
 model ConsejoPopular {
   id        String   @id @default(uuid())
-  nombre    String   @unique
-  codigo    String   @unique
+  nombre    String   @unique // Versalles, Pastorita, La Playa, Mtzas Este/Oeste
+  codigo    String   @unique // Ej: CP-VER-001
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
-  delegacias  Delegacia[]
-  solicitudes Solicitud[]
-  rutas       Ruta[]
-  puntoRutas  PuntoRuta[]
+  // 🔗 Relaciones
+  presidente        Usuario?          @relation("PresidenteConsejo", fields: [presidenteId], references: [id])
+  presidenteId      String?           @unique
+  circunscripciones Circunscripcion[]
+  puntoRutas        PuntoRuta[]
+  solicituds        Solicitud[]
 
   @@index([nombre])
-}
-
-model Delegacia {
-  id        String   @id @default(uuid())
-  nombre    String
-  codigo    String   @unique
-  direccion String?
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones
-  consejoPopular   ConsejoPopular @relation(fields: [consejoPopularId], references: [id])
-  consejoPopularId String
-  usuario          Usuario[]
-  solicitudes      Solicitud[]
-
-  @@index([consejoPopularId])
   @@index([codigo])
 }
 
 // ============================================================================
-// MODELO DE GESTIÓN DE COMBUSTIBLE
+// MODELO: CIRCUNSCRIPCIÓN (Actualizado)
 // ============================================================================
 
-model TipoCombustible {
+model Circunscripcion {
+  id        String   @id @default(uuid())
+  nombre    String
+  codigo    String   @unique // Ej: CP-VER-CIRC-01
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 🔗 Relaciones
+  consejoPopular   ConsejoPopular @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId String
+
+  delegado   Usuario? @relation("DelegadoCircunscripcion", fields: [delegadoId], references: [id])
+  delegadoId String?  @unique
+
+  zonas      Zona[] // 🔹 NUEVO: Una circunscripción se divide en varias zonas
+  puntoRutas PuntoRuta[]
+  solicituds Solicitud[]
+
+  @@index([consejoPopularId])
+  @@index([codigo])
+  @@index([activo])
+}
+
+// ============================================================================
+// MODELO: ZONA (Actualizado)
+// ============================================================================
+
+model Zona {
+  id        String   @id @default(uuid())
+  nombre    String // Ej: "Zona Norte", "Sector 2", "La Loma"
+  codigo    String?  @unique // Ej: ZONA-VER-01
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 🔗 Relaciones
+  circunscripcion   Circunscripcion @relation(fields: [circunscripcionId], references: [id])
+  circunscripcionId String
+  cdrs              CDR[] // 🔹 NUEVO: Una zona agrupa varios CDRs
+  puntoRutas        PuntoRuta[]
+
+  @@index([circunscripcionId])
+  @@index([codigo])
+  @@index([activo])
+}
+
+// ============================================================================
+// MODELO: CDR (Nuevo)
+// ============================================================================
+
+model CDR {
   id             String   @id @default(uuid())
-  nombre         String   @unique // Diésel, Gasolina 95, Gasolina 97
-  codigo         String   @unique
-  precioPorLitro Decimal  @db.Decimal(10, 2)
+  numero         String   @unique // Ej: "CDR #123", "154"
+  direccion      String?
+  coordenadasLat Float?
+  coordenadasLng Float?
   activo         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  // Relaciones
-  tanques      TanqueCombustible[]
-  asignaciones Asignacion[]
-  vehiculos    Vehiculo[]
+  // 🔗 Relaciones
+  zona       Zona        @relation(fields: [zonaId], references: [id])
+  zonaId     String
+  puntoRutas PuntoRuta[]
 
-  @@index([nombre])
-}
-
-model TanqueCombustible {
-  id              String   @id @default(uuid())
-  nombre          String // Tanque Principal, Tanque Secundario
-  capacidadTotal  Decimal  @db.Decimal(10, 2) // En litros
-  capacidadActual Decimal  @db.Decimal(10, 2) // En litros
-  ubicacion       String?
-  activo          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relaciones
-  tipoCombustible   TipoCombustible    @relation(fields: [tipoCombustibleId], references: [id])
-  tipoCombustibleId String
-  movimientos       MovimientoTanque[]
-
-  @@index([tipoCombustibleId])
-}
-
-model MovimientoTanque {
-  id            String         @id @default(uuid())
-  tipo          TipoMovimiento
-  cantidad      Decimal        @db.Decimal(10, 2) // En litros
-  saldoAnterior Decimal        @db.Decimal(10, 2)
-  saldoNuevo    Decimal        @db.Decimal(10, 2)
-  observaciones String?
-  createdAt     DateTime       @default(now())
-
-  // Relaciones
-  tanque     TanqueCombustible @relation(fields: [tanqueId], references: [id])
-  tanqueId   String
-  usuario    Usuario           @relation(fields: [usuarioId], references: [id])
-  usuarioId  String
-  asignacion Asignacion[]
-
-  @@index([tanqueId])
-  @@index([createdAt])
-}
-
-enum TipoMovimiento {
-  ENTRADA
-  SALIDA
-  AJUSTE
-  MERMA
+  @@index([zonaId])
+  @@index([activo])
 }
 
 // ============================================================================
-// MODELO DE GESTIÓN DE VEHÍCULOS
+// ENUM: TIPO DE PUNTO DE RUTA
 // ============================================================================
 
-model Vehiculo {
-  id                String          @id @default(uuid())
-  placa             String          @unique
-  marca             String
-  modelo            String?
-  capacidadTanque   Decimal         @db.Decimal(10, 2)
-  tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
-  tipoCombustibleId String
-  estado            EstadoVehiculo  @default(DISPONIBLE)
-  kilometraje       Decimal         @db.Decimal(10, 2)
-  activo            Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  // Relaciones
-  chofer         Usuario?        @relation(fields: [choferId], references: [id])
-  choferId       String?
-  asignaciones   Asignacion[]
-  mantenimientos Mantenimiento[]
-
-  @@index([placa])
-  @@index([estado])
+enum TipoPuntoRuta {
+  INICIO // Primer punto de la ruta
+  INTERMEDIO // Paradas o puntos de paso
+  DESTINO // Último punto de la ruta
 }
+
+// ============================================================================
+// MODELO: RUTA (Sin cambios mayores, solo referencia)
+// ============================================================================
+
+model Ruta {
+  id             String   @id @default(uuid())
+  nombre         String
+  descripcion    String?
+  distanciaTotal Decimal  @db.Decimal(10, 2)
+  tiempoEstimado Int?
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // 🔗 Relación inversa hacia los puntos
+  puntos      PuntoRuta[]
+  solicituds  Solicitud[]
+  asignacions Asignacion[]
+
+  @@index([activa])
+}
+
+// ============================================================================
+// MODELO: PUNTO DE RUTA (Revisado con jerarquía territorial completa)
+// ============================================================================
+
+model PuntoRuta {
+  id             String        @id @default(uuid())
+  orden          Int // 0, 1, 2... define la secuencia
+  tipo           TipoPuntoRuta @default(INTERMEDIO)
+  nombre         String // Nombre del lugar/parada
+  direccion      String?
+  coordenadasLat Float?
+  coordenadasLng Float?
+  createdAt      DateTime      @default(now())
+
+  // 🔗 Relación Principal: Pertenece a una Ruta
+  ruta   Ruta   @relation(fields: [rutaId], references: [id])
+  rutaId String
+
+  consejoPopular    ConsejoPopular?  @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId  String?
+  circunscripcion   Circunscripcion? @relation(fields: [circunscripcionId], references: [id])
+  circunscripcionId String?
+  zona              Zona?            @relation(fields: [zonaId], references: [id])
+  zonaId            String?
+  cdr               CDR?             @relation(fields: [cdrId], references: [id])
+  cdrId             String?
+
+  @@unique([rutaId, orden]) // Evita duplicados de posición
+  @@index([rutaId])
+  @@index([orden])
+  // Índices para búsquedas rápidas por territorio
+  @@index([consejoPopularId])
+  @@index([circunscripcionId])
+  @@index([zonaId])
+  @@index([cdrId])
+}
+
+// ============================================================================
+// ENUM: ESTADO DEL VEHÍCULO
+// ============================================================================
 
 enum EstadoVehiculo {
   DISPONIBLE
@@ -191,64 +231,246 @@ enum EstadoVehiculo {
   FUERA_DE_SERVICIO
 }
 
+// ============================================================================
+// MODELO: TIPO DE COMBUSTIBLE (Auxiliar para Vehículo)
+// ============================================================================
+
+model TipoCombustible {
+  id             String   @id @default(uuid())
+  nombre         String   @unique // Ej: Diésel, Gasolina 95, Gasolina 97
+  codigo         String   @unique // DIE, GAS95, GAS97
+  precioPorLitro Decimal  @db.Decimal(10, 2)
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // 🔗 Relación inversa
+  vehiculos              Vehiculo[]
+  inventarioCombustibles InventarioCombustible[]
+  movimientoCombustibles MovimientoCombustible[]
+  solicituds             Solicitud[]
+  asignacions            Asignacion[]
+
+  @@index([nombre])
+}
+
+// ============================================================================
+// MODELO: VEHÍCULO
+// ============================================================================
+
+model Vehiculo {
+  id              String         @id @default(uuid())
+  placa           String         @unique
+  marca           String
+  modelo          String?
+  color           String?
+  capacidadTanque Decimal        @db.Decimal(10, 2) // En litros
+  kilometraje     Decimal        @db.Decimal(10, 2) // Kilometraje actual
+  estado          EstadoVehiculo @default(DISPONIBLE)
+  activo          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // 🔗 Relaciones
+  tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String
+
+  chofer   Usuario? @relation(fields: [choferId], references: [id])
+  choferId String?
+
+  mantenimientos Mantenimiento[]
+  asignacions    Asignacion[]
+
+  @@index([placa])
+  @@index([estado])
+  @@index([tipoCombustibleId])
+  @@index([activo])
+}
+
+// ============================================================================
+// MODELO: MANTENIMIENTO
+// ============================================================================
+
 model Mantenimiento {
   id          String   @id @default(uuid())
-  tipo        String // Preventivo, Correctivo
+  tipo        String // "Preventivo" o "Correctivo"
   descripcion String
   costo       Decimal  @db.Decimal(10, 2)
-  kilometraje Decimal  @db.Decimal(10, 2)
-  activo      Boolean  @default(true)
-  fecha       DateTime
+  kilometraje Decimal  @db.Decimal(10, 2) // Km al momento del servicio
+  fecha       DateTime // Fecha de realización
   createdAt   DateTime @default(now())
 
-  // Relaciones
+  // 🔗 Relaciones
   vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id])
   vehiculoId String
 
   @@index([vehiculoId])
   @@index([fecha])
+  @@index([tipo])
 }
 
 // ============================================================================
-// MODELO DE SOLICITUDES Y ASIGNACIONES
+// MODELO: ASAMBLEA MUNICIPAL (Actualizado)
+// ============================================================================
+
+model AsambleaMunicipal {
+  id                   String   @id @default(uuid())
+  nombre               String   @default("Asamblea Municipal del Poder Popular")
+  codigo               String   @unique
+  servicentroNombre    String
+  servicentroDireccion String?
+  activo               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // 🔗 Relación con inventarios por tipo de combustible
+  inventarios            InventarioCombustible[]
+  movimientosCombustible MovimientoCombustible[]
+  asignacions            Asignacion[]
+
+  @@index([codigo])
+  @@index([activo])
+}
+
+// ============================================================================
+// MODELO: INVENTARIO DE COMBUSTIBLE (Nuevo - Control de saldo por tipo)
+// ============================================================================
+
+model InventarioCombustible {
+  id                       String   @id @default(uuid())
+  cantidadAsignada         Decimal  @db.Decimal(12, 2) // Total asignado desde La Habana
+  saldoActual              Decimal  @db.Decimal(12, 2) // Litros disponibles actualmente
+  fechaUltimaActualizacion DateTime @default(now())
+
+  // 🔗 Relaciones
+  asamblea          AsambleaMunicipal @relation(fields: [asambleaId], references: [id])
+  asambleaId        String
+  tipoCombustible   TipoCombustible   @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String
+
+  movimientos MovimientoCombustible[]
+
+  @@unique([asambleaId, tipoCombustibleId]) // ⚠️ Una asamblea solo puede tener 1 saldo por tipo
+  @@index([asambleaId])
+  @@index([tipoCombustibleId])
+}
+
+// ============================================================================
+// MODELO: MOVIMIENTO COMBUSTIBLE (Actualizado)
+// ============================================================================
+
+model MovimientoCombustible {
+  id            String                    @id @default(uuid())
+  tipo          TipoMovimientoCombustible
+  cantidad      Decimal                   @db.Decimal(10, 2)
+  saldoAnterior Decimal                   @db.Decimal(12, 2) // Saldo ANTES del movimiento
+  saldoNuevo    Decimal                   @db.Decimal(12, 2) // Saldo DESPUÉS del movimiento
+  observaciones String?
+  createdAt     DateTime                  @default(now())
+
+  // 🔗 Relaciones
+  asamblea                AsambleaMunicipal      @relation(fields: [asambleaId], references: [id])
+  asambleaId              String
+  tipoCombustible         TipoCombustible        @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId       String
+  usuario                 Usuario                @relation(fields: [usuarioId], references: [id])
+  usuarioId               String
+  inventarioCombustible   InventarioCombustible? @relation(fields: [inventarioCombustibleId], references: [id])
+  inventarioCombustibleId String?
+  asignacions             Asignacion[]           @relation("MovimientoAsignacion")
+
+  @@index([asambleaId])
+  @@index([tipoCombustibleId])
+  @@index([createdAt])
+  @@index([usuarioId])
+}
+
+enum TipoMovimientoCombustible {
+  ASIGNACION_INICIAL
+  ASIGNACION_SOLICITUD
+  DEVOLUCION
+  AJUSTE
+  MERMA
+}
+
+// ============================================================================
+// ENUM: TIPO DE SOLICITUD
+// ============================================================================
+
+enum TipoSolicitud {
+  GENERAL // Solicitud estándar de un delegado o institución
+  FISCALIZACION // Para labores de fiscalización territorial
+  CONTROL_POPULAR // Control popular gestionado por Presidente de Consejo
+  EMERGENCIA // Casos excepcionales o de urgencia validada
+}
+
+// ============================================================================
+// ENUM: ESTADO DE SOLICITUD
+// ============================================================================
+
+enum EstadoSolicitud {
+  PENDIENTE // Recibida, pendiente de revisión/validación de saldo
+  APROBADA // Validada y lista para asignación
+  RECHAZADA // Denegada (falta de saldo, justificación insuficiente, etc.)
+  EN_PROCESO // Asignación creada, vehículo/combustible en preparación
+  COMPLETADA // Ejecutada y reportada
+  CANCELADA // Cancelada por el solicitante o autoridad
+}
+
+// ============================================================================
+// MODELO: SOLICITUD
 // ============================================================================
 
 model Solicitud {
   id              String          @id @default(uuid())
   codigo          String          @unique // Formato: SOL-YYYYMMDD-XXX
-  descripcion     String
-  actividad       String // Tipo de actividad: Fiscalización, Visita, Reunión
-  fechaSolicitada DateTime
-  fechaRequerida  DateTime
+  descripcion     String // Detalle de la actividad a realizar
+  actividad       String // Ej: "Fiscalización almacenes", "Reunión sectorial"
+  tipoSolicitud   TipoSolicitud   @default(GENERAL)
+  fechaSolicitada DateTime        @default(now())
+  fechaRequerida  DateTime // Cuándo se necesita el combustible
   cantidadLitros  Decimal         @db.Decimal(10, 2)
   estado          EstadoSolicitud @default(PENDIENTE)
   observaciones   String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  // Relaciones
-  usuario          Usuario         @relation(fields: [usuarioId], references: [id])
-  usuarioId        String
-  delegacia        Delegacia?      @relation(fields: [delegaciaId], references: [id])
-  delegaciaId      String?
-  consejoPopular   ConsejoPopular? @relation(fields: [consejoPopularId], references: [id])
-  consejoPopularId String?
-  ruta             Ruta[]
-  asignacion       Asignacion?
+  // 🔗 Relaciones Principales
+  usuario           Usuario          @relation(fields: [usuarioId], references: [id])
+  usuarioId         String
+  tipoCombustible   TipoCombustible  @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String // ⚠️ Crucial para validar inventario específico
+  consejoPopular    ConsejoPopular?  @relation(fields: [consejoPopularId], references: [id])
+  consejoPopularId  String?
+  circunscripcion   Circunscripcion? @relation(fields: [circunscripcionId], references: [id])
+  circunscripcionId String?
+
+  // 🔗 Relaciones de Flujo
+  ruta       Ruta?       @relation(fields: [rutaId], references: [id])
+  rutaId     String? // Puede asignarse al aprobar o durante ejecución
+  asignacion Asignacion?
 
   @@index([estado])
   @@index([fechaSolicitada])
   @@index([usuarioId])
+  @@index([circunscripcionId])
+  @@index([tipoCombustibleId])
 }
 
-enum EstadoSolicitud {
-  PENDIENTE
-  APROBADA
-  RECHAZADA
-  EN_PROCESO
-  COMPLETADA
-  CANCELADA
+// ============================================================================
+// ENUM: ESTADO DE ASIGNACIÓN
+// ============================================================================
+
+enum EstadoAsignacion {
+  ASIGNADO // Recursos reservados, vehículo y combustible listos para retiro
+  EN_USO // Chofer retiró el combustible y el vehículo está en operación
+  DEVUELTO // Vehículo devuelto, odómetro final registrado, reporte generado
+  CANCELADO // Anulada antes o durante la ejecución (combustible reintegrado)
 }
+
+// ============================================================================
+// MODELO: ASIGNACIÓN
+// ============================================================================
 
 model Asignacion {
   id              String           @id @default(uuid())
@@ -263,139 +485,106 @@ model Asignacion {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  // Relaciones
-  solicitud          Solicitud         @relation(fields: [solicitudId], references: [id])
-  solicitudId        String            @unique
-  vehiculo           Vehiculo          @relation(fields: [vehiculoId], references: [id])
-  vehiculoId         String
-  tipoCombustible    TipoCombustible   @relation(fields: [tipoCombustibleId], references: [id])
-  tipoCombustibleId  String
-  responsable        Usuario           @relation("ResponsableAsignacion", fields: [responsableId], references: [id])
-  responsableId      String
-  chofer             Usuario?          @relation(fields: [choferId], references: [id])
-  choferId           String?
-  ruta               Ruta?             @relation(fields: [rutaId], references: [id])
-  movimientoTanque   MovimientoTanque? @relation(fields: [movimientoTanqueId], references: [id])
-  reportes           ReporteConsumo[]
-  rutaId             String?
-  movimientoTanqueId String?
+  // 🔗 Relación 1:1 con Solicitud (origen de la petición)
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id])
+  solicitudId String    @unique
+
+  // 🔗 Recurso Físico
+  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id])
+  vehiculoId String
+
+  // 🔗 Tipo de Combustible (vincula con inventario)
+  tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustibleId String
+
+  // 🔗 Ruta Planificada (opcional hasta ejecución)
+  ruta   Ruta?   @relation(fields: [rutaId], references: [id])
+  rutaId String?
+
+  // 🔗 Origen del Combustible (Asamblea Municipal)
+  asamblea   AsambleaMunicipal @relation(fields: [asambleaId], references: [id])
+  asambleaId String
+
+  // 🔗 Responsables Humanos
+  responsable   Usuario @relation("ResponsableAsignacion", fields: [responsableId], references: [id])
+  responsableId String
+
+  // 🔗 Registro de Movimiento de Inventario (trazabilidad del descuento)
+  movimiento     MovimientoCombustible? @relation("MovimientoAsignacion", fields: [movimientoId], references: [id])
+  movimientoId   String?
+  reporteConsumo ReporteConsumo?
 
   @@index([estado])
   @@index([fechaAsignacion])
   @@index([vehiculoId])
-}
-
-enum EstadoAsignacion {
-  ASIGNADO
-  EN_USO
-  DEVUELTO
-  CANCELADO
+  @@index([asambleaId])
+  @@index([tipoCombustibleId])
+  @@index([responsableId])
 }
 
 // ============================================================================
-// MODELO DE RUTAS Y DESTINOS
-// ============================================================================
-
-model Ruta {
-  id             String   @id @default(uuid())
-  nombre         String
-  descripcion    String?
-  distanciaTotal Decimal  @db.Decimal(10, 2) // En kilómetros
-  tiempoEstimado Int? // En minutos
-  activa         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relaciones
-  solicitud         Solicitud?       @relation(fields: [solicitudId], references: [id])
-  asignacion        Asignacion[]
-  consejosPopulares ConsejoPopular[]
-  puntos            PuntoRuta[]
-  solicitudId       String?
-
-  @@index([activa])
-}
-
-model PuntoRuta {
-  id             String   @id @default(uuid())
-  orden          Int
-  nombre         String
-  direccion      String?
-  tiempoEstimado Int? // En minutos desde el punto anterior
-  createdAt      DateTime @default(now())
-
-  // Relaciones
-  ruta             Ruta            @relation(fields: [rutaId], references: [id])
-  rutaId           String
-  consejoPopular   ConsejoPopular? @relation(fields: [consejoPopularId], references: [id])
-  consejoPopularId String?
-
-  @@index([rutaId])
-  @@index([orden])
-}
-
-// ============================================================================
-// MODELO DE REPORTES Y CONTROL
+// MODELO: REPORTE DE CONSUMO
 // ============================================================================
 
 model ReporteConsumo {
-  id            String   @id @default(uuid())
-  codigo        String   @unique // Formato: RPT-YYYYMMDD-XXX
-  consumoReal   Decimal  @db.Decimal(10, 2) // En litros
-  rendimiento   Decimal  @db.Decimal(10, 2) // km/litro
-  observaciones String?
+  id     String @id @default(uuid())
+  codigo String @unique // Formato: RPT-YYYYMMDD-XXX
+
+  // Métricas Clave (KPIs)
+  consumoReal          Decimal @db.Decimal(10, 2) // Litros consumidos realmente
+  kilometrajeRecorrido Decimal @db.Decimal(10, 2) // Diferencia entre odómetro final e inicial
+  rendimiento          Decimal @db.Decimal(10, 2) // km por litro (km / litros)
+
+  observaciones String? // Notas sobre el viaje, incidencias, etc.
   fechaReporte  DateTime @default(now())
   createdAt     DateTime @default(now())
 
-  // Relaciones
+  // 🔗 Relación 1:1 con Asignación (el reporte finaliza la asignación)
   asignacion   Asignacion @relation(fields: [asignacionId], references: [id])
-  asignacionId String
-  usuario      Usuario    @relation(fields: [usuarioId], references: [id])
-  usuarioId    String
+  asignacionId String     @unique // Una asignación solo genera UN reporte final
+
+  // 🔗 Usuario que genera el reporte (Supervisor o Responsable)
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId String
 
   @@index([asignacionId])
   @@index([fechaReporte])
+  @@index([rendimiento]) // Útil para buscar vehículos/conductores ineficientes
 }
+
+// ============================================================================
+// ENUM: TIPO DE ACCIÓN
+// ============================================================================
+
+enum TipoAccion {
+  CREAR
+  ACTUALIZAR
+  ELIMINAR
+  CONSULTAR // ⚠️ Ver nota de rendimiento más abajo
+}
+
+// ============================================================================
+// MODELO: AUDITORÍA
+// ============================================================================
 
 model Auditoria {
   id              String     @id @default(uuid())
-  tabla           String
-  registroId      String
+  tabla           String // Nombre del modelo afectado (ej: "Solicitud", "Vehiculo")
+  registroId      String // ID del registro modificado
   accion          TipoAccion
-  datosAnteriores Json?
-  datosNuevos     Json?
-  ipAddress       String?
-  userAgent       String?
+  datosAnteriores Json? // Snapshot del estado ANTES del cambio
+  datosNuevos     Json? // Snapshot del estado DESPUÉS del cambio
+  ipAddress       String? // IP desde donde se ejecutó la acción
+  userAgent       String? // Navegador/Dispositivo
   createdAt       DateTime   @default(now())
 
-  // Relaciones
+  // 🔗 Relación con el usuario que ejecutó la acción
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
   usuarioId String
 
   @@index([tabla])
   @@index([createdAt])
   @@index([usuarioId])
-}
-
-enum TipoAccion {
-  CREAR
-  ACTUALIZAR
-  ELIMINAR
-  CONSULTAR
-}
-
-// ============================================================================
-// MODELO DE CONFIGURACIÓN Y PARÁMETROS
-// ============================================================================
-
-model Configuracion {
-  id          String   @id @default(uuid())
-  clave       String   @unique
-  valor       String
-  descripcion String?
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([clave])
+  @@index([accion])
+  @@index([tabla, createdAt]) // Índice compuesto para consultas por tabla + fecha
 }

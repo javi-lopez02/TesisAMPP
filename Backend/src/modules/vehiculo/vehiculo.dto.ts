@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EstadoVehiculo } from "../../generated/prisma";
+import { EstadoVehiculo } from "../../generated/prisma/enums";
 
 // Eliminados: modelo, anio, color
 export const createVehiculoSchema = z.object({
