@@ -1,3 +1,4 @@
+import { truncate } from "node:fs";
 import { prisma } from "../../config/prisma";
 import { CreateZonaInput, UpdateZonaInput } from "./zona.dto";
 
@@ -10,7 +11,7 @@ export const ZonaService = {
       where,
       orderBy: { nombre: "asc" },
       include: {
-        circunscripcion: { select: { id: true, nombre: true, codigo: true } },
+        circunscripcion: true,
         _count: { select: { cdrs: true, puntoRutas: true } },
       },
     });
@@ -20,7 +21,7 @@ export const ZonaService = {
     const zona = await prisma.zona.findUnique({
       where: { id, activo: true },
       include: {
-        circunscripcion: { select: { id: true, nombre: true, codigo: true } },
+        circunscripcion: true,
         cdrs: {
           where: { activo: true },
           select: { id: true, numero: true, direccion: true },
@@ -39,7 +40,10 @@ export const ZonaService = {
     if (!circ) throw new Error("Circunscripción no encontrada o inactiva");
 
     try {
-      return await prisma.zona.create({ data });
+      return await prisma.zona.create({
+        data,
+        include: { circunscripcion: true },
+      });
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El código ya está registrado");
@@ -53,7 +57,7 @@ export const ZonaService = {
       return await prisma.zona.update({
         where: { id, activo: true },
         data: data,
-        include: { circunscripcion: { select: { id: true, nombre: true } } },
+        include: { circunscripcion: true },
       });
     } catch (error: any) {
       if (error.code === "P2002") throw new Error("El código ya está en uso");

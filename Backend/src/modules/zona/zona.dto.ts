@@ -9,6 +9,7 @@ export const createZonaSchema = z.object({
 export const updateZonaSchema = z.object({
   nombre: z.string().min(2).optional(),
   codigo: z.string().optional().nullable(),
+  circunscripcionId: z.string().uuid("ID de Circunscripción inválido"),
 });
 
 export type CreateZonaInput = z.infer<typeof createZonaSchema>;

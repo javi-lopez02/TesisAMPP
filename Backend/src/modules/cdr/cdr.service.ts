@@ -10,7 +10,7 @@ export const CDRService = {
       where,
       orderBy: { numero: "asc" },
       include: {
-        zona: { select: { id: true, nombre: true, codigo: true } },
+        zona: true,
         _count: { select: { puntoRutas: true } },
       },
     });
@@ -20,7 +20,7 @@ export const CDRService = {
     const cdr = await prisma.cDR.findUnique({
       where: { id, activo: true },
       include: {
-        zona: { select: { id: true, nombre: true, codigo: true } },
+        zona: true,
       },
     });
     if (!cdr) throw new Error("CDR no encontrado o eliminado");
@@ -35,7 +35,7 @@ export const CDRService = {
     if (!zona) throw new Error("Zona no encontrada o inactiva");
 
     try {
-      return await prisma.cDR.create({ data });
+      return await prisma.cDR.create({ data: data, include: { zona: true } });
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El número de CDR ya está registrado");
@@ -49,7 +49,7 @@ export const CDRService = {
       return await prisma.cDR.update({
         where: { id, activo: true },
         data: data,
-        include: { zona: { select: { id: true, nombre: true } } },
+        include: { zona: true },
       });
     } catch (error: any) {
       if (error.code === "P2002")

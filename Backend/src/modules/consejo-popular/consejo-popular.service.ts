@@ -5,6 +5,15 @@ export const ConsejoPopularService = {
   async findAll() {
     return await prisma.consejoPopular.findMany({
       where: { activo: true },
+      include: {
+        _count: {
+          select: {
+            circunscripciones: true,
+            solicituds: true,
+          },
+        },
+        presidente: true,
+      },
       orderBy: { nombre: "asc" },
     });
   },
@@ -19,7 +28,12 @@ export const ConsejoPopularService = {
 
   async create(data: CreateConsejoInput) {
     try {
-      return await prisma.consejoPopular.create({ data });
+      return await prisma.consejoPopular.create({
+        data,
+        include: {
+          presidente: true,
+        },
+      });
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El nombre o código ya existe");
@@ -32,6 +46,9 @@ export const ConsejoPopularService = {
       return await prisma.consejoPopular.update({
         where: { id, activo: true },
         data,
+        include: {
+          presidente: true,
+        },
       });
     } catch (error: any) {
       if (error.code === "P2002")

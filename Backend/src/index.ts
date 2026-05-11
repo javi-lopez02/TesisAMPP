@@ -20,6 +20,7 @@ import { cdrRoutes } from "./modules/cdr/cdr.routes.js";
 import { rutaRoutes } from "./modules/ruta/ruta.routes.js";
 import { puntoRutaRoutes } from "./modules/punto-ruta/punto-ruta.routes.js";
 import { asambleaRoutes } from "./modules/ampp/ampp.routes.js";
+import { usuarioRoutes } from "./modules/usuario/usuario.routes.js";
 
 dotenv.config();
 const port = 4000;
@@ -45,11 +46,12 @@ app.use(cookieParser());
 app.use("/public", express.static(path.join(__dirname, "/Upload")));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/usuario", usuarioRoutes);
 
 app.use("/api/consejo-popular", consejoPopularRoutes);
 app.use("/api/circunscripcion", circunscripcionRoutes);
 app.use("/api/zonas", zonaRoutes);
-app.use("/api/cdrs", cdrRoutes);
+app.use("/api/cdr", cdrRoutes);
 
 app.use("/api/rutas", rutaRoutes);
 app.use("/api/puntos-ruta", puntoRutaRoutes);

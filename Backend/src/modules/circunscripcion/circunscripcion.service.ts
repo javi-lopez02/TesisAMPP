@@ -57,7 +57,13 @@ export const CircunscripcionService = {
     }
 
     try {
-      return await prisma.circunscripcion.create({ data });
+      return await prisma.circunscripcion.create({
+        data,
+        include: {
+          consejoPopular: true,
+          delegado: true,
+        },
+      });
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("El código ya está registrado");
@@ -79,6 +85,10 @@ export const CircunscripcionService = {
       return await prisma.circunscripcion.update({
         where: { id, activo: true },
         data: data,
+        include: {
+          consejoPopular: true,
+          delegado: true,
+        },
       });
     } catch (error: any) {
       if (error.code === "P2002") throw new Error("El código ya está en uso");

@@ -7,7 +7,7 @@ export const CircunscripcionController = {
     try {
       const { consejoPopularId } = req.query;
       const circunscripciones = await CircunscripcionService.findAll(consejoPopularId as string);
-      res.json({ success: true,  circunscripciones });
+      res.json({ success: true, data: circunscripciones });
     } catch (error) {
       next(error);
     }
@@ -16,7 +16,7 @@ export const CircunscripcionController = {
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const circunscripcion = await CircunscripcionService.findById(req.params.id as string);
-      res.json({ success: true,  circunscripcion });
+      res.json({ success: true, data: circunscripcion });
     } catch (error) {
       next(error);
     }
@@ -29,7 +29,7 @@ export const CircunscripcionController = {
       res.status(201).json({ 
         success: true, 
         message: "Circunscripción creada exitosamente", 
-         circunscripcion 
+        data: circunscripcion 
       });
     } catch (error) {
       next(error);
@@ -43,7 +43,7 @@ export const CircunscripcionController = {
       res.json({ 
         success: true, 
         message: "Circunscripción actualizada exitosamente", 
-         circunscripcion 
+        data: circunscripcion 
       });
     } catch (error) {
       next(error);
@@ -63,7 +63,7 @@ export const CircunscripcionController = {
   findByConsejoPopular: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const circunscripciones = await CircunscripcionService.findAll(req.params.consejoPopularId as string);
-      res.json({ success: true,  circunscripciones });
+      res.json({ success: true, data: circunscripciones });
     } catch (error) {
       next(error);
     }

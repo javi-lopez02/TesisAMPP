@@ -136,8 +136,6 @@ model CDR {
   id             String   @id @default(uuid())
   numero         String   @unique // Ej: "CDR #123", "154"
   direccion      String?
-  coordenadasLat Float?
-  coordenadasLng Float?
   activo         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -193,8 +191,6 @@ model PuntoRuta {
   tipo           TipoPuntoRuta @default(INTERMEDIO)
   nombre         String // Nombre del lugar/parada
   direccion      String?
-  coordenadasLat Float?
-  coordenadasLng Float?
   createdAt      DateTime      @default(now())
 
   // 🔗 Relación Principal: Pertenece a una Ruta

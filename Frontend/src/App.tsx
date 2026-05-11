@@ -5,14 +5,14 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { MainLayout } from "./layouts/MainLayout";
 
 // ── Páginas ─────────────────────────────────────────────────────────────────
-import { HomePage }             from "./pages/HomePage";
-import { LoginPage }            from "./components/auth/LoginPage";
-import { RegisterPage }         from "./components/auth/RegisterPage";
-import { NotFoundPage }         from "./pages/NotFoundPage";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./components/auth/LoginPage";
+import { RegisterPage } from "./components/auth/RegisterPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 // import { SolicitudesPage }      from "./pages/SolicitudesPage";
 // import { TanquesPage }          from "./pages/TanquesPage";
 // import { VehiculosPage }        from "./pages/VehiculosPage";
@@ -23,16 +23,26 @@ import { NotFoundPage }         from "./pages/NotFoundPage";
 import { useAuthStore } from "./store/authStore";
 
 // ── Roles ────────────────────────────────────────────────────────────────────
-type Rol = "ADMINISTRADOR" | "SUPERVISOR" | "DELEGADO" | "PRESIDENTE_CONSEJO" | "CHOFER";
+type Rol =
+  | "ADMINISTRADOR"
+  | "SUPERVISOR"
+  | "DELEGADO"
+  | "PRESIDENTE_CONSEJO"
+  | "CHOFER";
 
 // Permisos por ruta — quién puede acceder a cada path
 const ROUTE_ROLES: Record<string, Rol[]> = {
-  "/solicitudes":       ["ADMINISTRADOR", "SUPERVISOR", "DELEGADO", "PRESIDENTE_CONSEJO"],
-  "/tanques":           ["ADMINISTRADOR", "SUPERVISOR"],
-  "/vehiculos":         ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
-  "/rutas":             ["ADMINISTRADOR", "SUPERVISOR"],
-  "/consejos-populares":["ADMINISTRADOR"],
-  "/reportes":          ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
+  "/solicitudes": [
+    "ADMINISTRADOR",
+    "SUPERVISOR",
+    "DELEGADO",
+    "PRESIDENTE_CONSEJO",
+  ],
+  "/tanques": ["ADMINISTRADOR", "SUPERVISOR"],
+  "/vehiculos": ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
+  "/rutas": ["ADMINISTRADOR", "SUPERVISOR"],
+  "/consejos-populares": ["ADMINISTRADOR"],
+  "/reportes": ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
 };
 
 // ── Spinner de carga ─────────────────────────────────────────────────────────
@@ -65,16 +75,12 @@ const AuthSpinner = () => (
 
 // ── Guard: requiere sesión activa ────────────────────────────────────────────
 const ProtectedRoute = () => {
-  const me              = useAuthStore((s) => s.me);
+  const me = useAuthStore((s) => s.me);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isLoading       = useAuthStore((s) => s.isLoading);
-  const hasFetched      = useRef(false);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   useEffect(() => {
-    if (!hasFetched.current) {
-      hasFetched.current = true;
-      me();
-    }
+    me();
   }, [me]);
 
   if (isLoading) return <AuthSpinner />;
@@ -105,16 +111,14 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
-    children: [
-      { index: true, element: <HomePage /> },
-    ],
+    children: [{ index: true, element: <HomePage /> }],
   },
 
   // ── Autenticación ──
   {
     element: <PublicRoute />,
     children: [
-      { path: "/login",    element: <LoginPage /> },
+      { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
     ],
   },
@@ -127,7 +131,6 @@ const router = createBrowserRouter([
         path: "/",
         element: <MainLayout />,
         children: [
-
           // TODOS los roles autenticados
           {
             element: <RoleRoute allowed={ROUTE_ROLES["/solicitudes"]} />,
@@ -175,7 +178,6 @@ const router = createBrowserRouter([
               // { path: "consejos-populares", element: <ConsejosPopularesPage /> },
             ],
           },
-
         ],
       },
     ],

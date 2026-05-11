@@ -6,7 +6,7 @@ export const CDRController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const cdrs = await CDRService.findAll(req.query.zonaId as string);
-      res.json({ success: true, cdrs });
+      res.json({ success: true, data: cdrs });
     } catch (error) {
       next(error);
     }
@@ -15,7 +15,7 @@ export const CDRController = {
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const cdr = await CDRService.findById(req.params.id as string);
-      res.json({ success: true, cdr });
+      res.json({ success: true, data: cdr });
     } catch (error) {
       next(error);
     }
@@ -25,7 +25,7 @@ export const CDRController = {
     try {
       const data = createCdrSchema.parse(req.body);
       const cdr = await CDRService.create(data);
-      res.status(201).json({ success: true, message: "CDR creado", cdr });
+      res.status(201).json({ success: true, message: "CDR creado", data: cdr });
     } catch (error) {
       next(error);
     }
@@ -35,7 +35,7 @@ export const CDRController = {
     try {
       const data = updateCdrSchema.parse(req.body);
       const cdr = await CDRService.update(req.params.id as string, data);
-      res.json({ success: true, message: "CDR actualizado", cdr });
+      res.json({ success: true, message: "CDR actualizado", data: cdr });
     } catch (error) {
       next(error);
     }
