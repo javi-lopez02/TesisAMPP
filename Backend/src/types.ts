@@ -1,4 +1,4 @@
-import { Rol } from "./generated/prisma";
+import { Rol } from "./generated/prisma/enums";
 
 // Extender Request para incluir usuario autenticado
 declare global {

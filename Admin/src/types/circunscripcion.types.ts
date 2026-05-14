@@ -32,3 +32,11 @@ export interface updateCircunscripcion {
   delegadoId: string;
   consejoPopularId: string; 
 }
+
+export interface FormState {
+  nombre: string;
+  codigo: string;
+  activo: boolean;
+  delegadoId: string;
+  consejoPopularId: string;
+}

@@ -13,9 +13,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { getCircunscripcion } from "../../types/circunscripcion.types";
-import type { FormState } from "../../pages/ZonasPage";
-
-type FormMode = "crear" | "editar";
+import type { FormState } from "../../types/zonas.types";
+import type { FormMode } from "../../types/globalTypes";
 
 const generateCodigo = (nombre: string): string => {
   const words = nombre.trim().toUpperCase().split(/\s+/);
@@ -27,18 +26,15 @@ const generateCodigo = (nombre: string): string => {
   return `Z-${prefix}-${num}`;
 };
 
-const inputBase = (hasError: boolean) =>
-  `w-full rounded-lg border px-3.5 py-2.5 text-[13px] outline-none transition
-   text-[#0e1f4d] placeholder:text-gray-300
-   dark:text-white dark:placeholder:text-white/20
+const inputClass = (hasError: boolean) =>
+  `w-full rounded-lg border px-3.5 py-2.5 text-[13px] text-[#0e1f4d] outline-none transition
+   placeholder:text-gray-300
+   dark:bg-black/3 dark:text-gray-500 dark:placeholder:text-white/20
    ${
      hasError
-       ? `border-[#F09595] bg-[#FCEBEB] focus:border-[#CC1A2E]
-        dark:border-[#F09595]/60 dark:bg-[#CC1A2E]/10 dark:focus:border-[#F09595]`
-       : `border-black/[0.10] bg-white focus:border-[#1B3D8F]
-        dark:border-white/10 dark:bg-white/[0.03] dark:focus:border-[#85B7EB]`
+       ? "border-[#F09595] bg-[#FCEBEB] focus:border-[#CC1A2E] dark:bg-[#CC1A2E]/10"
+       : "border-black/[0.10] bg-white focus:border-[#1B3D8F] dark:border-white/10 dark:focus:border-[#85B7EB]"
    }`;
-
 const SelectField = ({
   value,
   onChange,
@@ -54,7 +50,7 @@ const SelectField = ({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`${inputBase(hasError)} cursor-pointer appearance-none pr-9 dark:scheme-dark`}
+      className={`${inputClass(hasError)} cursor-pointer appearance-none pr-9 dark:scheme-dark`}
     >
       {children}
     </select>
@@ -136,7 +132,7 @@ export const SidePanel = ({
               });
             }}
             placeholder="Ej: Centro Ciudad"
-            className={inputBase(!!errors.nombre)}
+            className={inputClass(!!errors.nombre)}
           />
           {errors.nombre && (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.nombre}</p>
@@ -153,7 +149,7 @@ export const SidePanel = ({
             value={form.codigo}
             onChange={(e) => onChange({ codigo: e.target.value.toUpperCase() })}
             placeholder="Z-XXX-000"
-            className={`${inputBase(!!errors.codigo)} font-mono`}
+            className={`${inputClass(!!errors.codigo)} font-mono`}
           />
           {errors.codigo ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.codigo}</p>

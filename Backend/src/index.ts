@@ -62,7 +62,7 @@ app.use("/api/tipo-combustible", tipoCombustibleRoutes);
 
 app.use("/api/asamblea", asambleaRoutes);
 app.use("/api/movimiento-combustible", movimientoCombustibleRoutes);
-app.use("/api/inventario-combustible", inventarioRoutes);
+app.use("/api/inventarios", inventarioRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("🔴 Error:", err);

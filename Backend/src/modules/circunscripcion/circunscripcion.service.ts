@@ -6,30 +6,34 @@ import {
 
 export const CircunscripcionService = {
   async findAll(consejoPopularId?: string) {
-    const where: any = { activo: true };
-    if (consejoPopularId) where.consejoPopularId = consejoPopularId;
-
-    return await prisma.circunscripcion.findMany({
-      where,
-      orderBy: { codigo: "asc" },
-      include: {
-        consejoPopular: { select: { id: true, nombre: true, codigo: true } },
-        delegado: {
-          select: { id: true, nombre: true, apellidos: true, correo: true },
+    if (consejoPopularId) {
+      return await prisma.circunscripcion.findMany({
+        where: { consejoPopularId },
+        orderBy: { codigo: "asc" },
+        include: {
+          consejoPopular: true,
+          delegado: true,
+          _count: { select: { zonas: true, solicituds: true } },
         },
-        _count: { select: { zonas: true, solicituds: true } },
-      },
-    });
+      });
+    } else
+      return await prisma.circunscripcion.findMany({
+        orderBy: { codigo: "asc" },
+        include: {
+          consejoPopular: true,
+          delegado: true,
+          _count: { select: { zonas: true, solicituds: true } },
+        },
+      });
   },
 
   async findById(id: string) {
     const circ = await prisma.circunscripcion.findUnique({
-      where: { id, activo: true },
+      where: { id },
       include: {
         consejoPopular: { select: { id: true, nombre: true } },
         delegado: { select: { id: true, nombre: true, rol: true } },
         zonas: {
-          where: { activo: true },
           select: { id: true, nombre: true, codigo: true },
         },
       },
@@ -41,7 +45,7 @@ export const CircunscripcionService = {
   async create(data: CreateCircunscripcionInput) {
     // Validar Consejo Popular
     const consejo = await prisma.consejoPopular.findUnique({
-      where: { id: data.consejoPopularId, activo: true },
+      where: { id: data.consejoPopularId },
     });
     if (!consejo) throw new Error("Consejo Popular no encontrado o inactivo");
 
@@ -83,7 +87,7 @@ export const CircunscripcionService = {
 
     try {
       return await prisma.circunscripcion.update({
-        where: { id, activo: true },
+        where: { id },
         data: data,
         include: {
           consejoPopular: true,
@@ -101,7 +105,7 @@ export const CircunscripcionService = {
   async softDelete(id: string) {
     // Validar que no tenga zonas activas
     const zonasActivas = await prisma.zona.count({
-      where: { circunscripcionId: id, activo: true },
+      where: { circunscripcionId: id },
     });
     if (zonasActivas > 0) {
       throw new Error(

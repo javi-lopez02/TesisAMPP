@@ -1,5 +1,5 @@
 // src/pages/CdrsPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -13,21 +13,25 @@ import {
 } from "lucide-react";
 import { useCdr } from "../hooks/useCdr";
 import { useZonas } from "../hooks/useZonas";
-import type { getCdrs, createCdr, updateCdr } from "../types/cdrs.types";
+import type {
+  getCdrs,
+  createCdr,
+  updateCdr,
+  FormState,
+} from "../types/cdrs.types";
 import { DeleteModal } from "../components/cdrs/ModalDelete";
-import { StatPill } from "../components/cdrs/StatPill";
-import { Badge } from "../components/cdrs/Badge";
+import { StatPill } from "../components/globalComponents/StatPill";
 import { SidePanel } from "../components/cdrs/SidePanel";
+import { Badge } from "../components/globalComponents/Badge";
+import type { FormMode } from "../types/globalTypes";
 
-// ── Tipos locales ─────────────────────────────────────────────────────────────
-type FormMode = "crear" | "editar";
-
-export interface FormState {
-  numero: string;
-  direccion: string;
-  activo: boolean;
-  zonaId: string;
-}
+// 🔹 IMPORTAR HELPERS (solo filtro y validación)
+import {
+  aplicarFiltrosCdrs,
+  type FiltrosCdrs,
+  validarFormCdr,
+  type ValidationResult,
+} from "../components/cdrs/HelpersCdr";
 
 const FORM_INITIAL: FormState = {
   numero: "",
@@ -61,54 +65,25 @@ export const CdrsPage = () => {
     getAllZonas();
   }, [getAll, getAllZonas]);
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
-  const filtered = (cdrs ?? []).filter((c) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      c.numero.toString().includes(q) ||
-      c.direccion.toLowerCase().includes(q) ||
-      c.zona?.nombre.toLowerCase().includes(q) ||
-      c.zona?.codigo?.toLowerCase().includes(q);
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosCdrs = useMemo(
+    () => ({
+      search,
+      filterActivo,
+    }),
+    [search, filterActivo],
+  );
 
-    const matchActivo =
-      filterActivo === "todos"
-        ? true
-        : filterActivo === "activo"
-          ? c.activo
-          : !c.activo;
+  const filtered = useMemo(() => {
+    return aplicarFiltrosCdrs(cdrs, filtros);
+  }, [cdrs, filtros]);
 
-    return matchSearch && matchActivo;
-  });
-
-  // ── Validación ────────────────────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormState, string>> = {};
-
-    if (
-      !form.numero ||
-      isNaN(Number(form.numero)) ||
-      Number(form.numero) <= 0
-    ) {
-      errs.numero = "El número debe ser válido";
-    }
-
-    if (!form.direccion.trim()) errs.direccion = "La dirección es obligatoria";
-
-    if (!form.zonaId) errs.zonaId = "Debes seleccionar una zona";
-
-    // Verificar duplicados por número + zona
-    const duplicado = (cdrs ?? []).find(
-      (c) =>
-        c.numero === form.numero &&
-        c.zona?.id === form.zonaId &&
-        c.id !== editingId,
-    );
-    if (duplicado)
-      errs.numero = "Ya existe un CDR con este número en la zona seleccionada";
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  // ── Validación (usando helper) ─────────────────────────────────────────────
+  const validate = useCallback((): boolean => {
+    const result: ValidationResult = validarFormCdr(form, cdrs, editingId);
+    setFormErrors(result.errors);
+    return result.isValid;
+  }, [form, cdrs, editingId]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleNuevo = () => {

@@ -1,5 +1,5 @@
 // src/pages/ConsejosPopularesPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -9,23 +9,22 @@ import {
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
-import { StatPill } from "../components/consejos-populares/StatPill";
-import { Badge } from "../components/consejos-populares/Badge";
+import { StatPill } from "../components/globalComponents/StatPill";
+import { Badge } from "../components/globalComponents/Badge";
 import { SidePanel } from "../components/consejos-populares/SidePanel";
 import { DeleteModal } from "../components/consejos-populares/ModalDelete";
 import { useConsejoPopular } from "../hooks/useConsejoPopular";
-import type { getConsejo } from "../types/consejo.types";
+import type { FormState, getConsejo } from "../types/consejo.types";
 import { useUsuarios } from "../hooks/useUsuario";
+import type { FormMode } from "../types/globalTypes";
 
-// ── Tipos locales ─────────────────────────────────────────────────────────────
-type FormMode = "crear" | "editar";
-
-export interface FormState {
-  nombre: string;
-  codigo: string;
-  activo: boolean;
-  presidenteId: string;
-}
+// 🔹 IMPORTAR HELPERS (solo filtro y validación)
+import {
+  aplicarFiltrosConsejos,
+  type FiltrosConsejos,
+  validarFormConsejo,
+  type ValidationResult,
+} from "../components/consejos-populares/HelpersConsejos";
 
 const FORM_INITIAL: FormState = {
   nombre: "",
@@ -65,48 +64,32 @@ export const ConsejosPopularesPage = () => {
   // Carga inicial
   useEffect(() => {
     getAll();
-    getAllUsuarios({rol: "PRESIDENTE_CONSEJO"});
+    getAllUsuarios({ rol: "PRESIDENTE_CONSEJO" });
   }, [getAll, getAllUsuarios]);
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
-  const filtered = (consejosPopulares ?? []).filter((c) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      c.nombre.toLowerCase().includes(q) ||
-      c.codigo?.toLowerCase().includes(q) ||
-      c.presidente?.nombre.toLowerCase().includes(q) ||
-      c.presidente?.apellidos.toLowerCase().includes(q);
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosConsejos = useMemo(
+    () => ({
+      search,
+      filterActivo,
+    }),
+    [search, filterActivo],
+  );
 
-    const matchActivo =
-      filterActivo === "todos"
-        ? true
-        : filterActivo === "activo"
-          ? c.activo
-          : !c.activo;
+  const filtered = useMemo(() => {
+    return aplicarFiltrosConsejos(consejosPopulares, filtros);
+  }, [consejosPopulares, filtros]);
 
-    return matchSearch && matchActivo;
-  });
-
-  // ── Validación ────────────────────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormState, string>> = {};
-
-    if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio";
-
-    if (!form.codigo.trim()) errs.codigo = "El código es obligatorio";
-    else if (!/^CP-[A-Z]{2,6}-\d{3}$/.test(form.codigo))
-      errs.codigo = "Formato: CP-XXX-000";
-
-    const duplicado = (consejosPopulares ?? []).find(
-      (c) =>
-        c.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-        c.id !== editingId,
+  // ── Validación (usando helper) ─────────────────────────────────────────────
+  const validate = useCallback((): boolean => {
+    const result: ValidationResult = validarFormConsejo(
+      form,
+      consejosPopulares,
+      editingId,
     );
-    if (duplicado) errs.nombre = "Ya existe un consejo con ese nombre";
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+    setFormErrors(result.errors);
+    return result.isValid;
+  }, [form, consejosPopulares, editingId]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleNuevo = () => {

@@ -13,15 +13,21 @@ export const MovimientoCombustibleController = {
         desde: desde ? new Date(desde as string) : undefined,
         hasta: hasta ? new Date(hasta as string) : undefined,
       });
-      res.json({ success: true,  movimientos });
-    } catch (error) { next(error); }
+      res.json({ success: true, data: movimientos });
+    } catch (error) {
+      next(error);
+    }
   },
 
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const movimiento = await MovimientoCombustibleService.findById(req.params.id as string);
-      res.json({ success: true,  movimiento });
-    } catch (error) { next(error); }
+      const movimiento = await MovimientoCombustibleService.findById(
+        req.params.id as string,
+      );
+      res.json({ success: true, data: movimiento });
+    } catch (error) {
+      next(error);
+    }
   },
 
   create: async (req: Request, res: Response, next: NextFunction) => {
@@ -30,8 +36,13 @@ export const MovimientoCombustibleController = {
         return res.status(401).json({ error: "Usuario no autenticado" });
       }
       const data = createMovimientoCombustibleSchema.parse(req.body);
-      const movimiento = await MovimientoCombustibleService.create(data, req.usuario.id);
-      res.status(201).json({ success: true, message: "Movimiento registrado exitosamente",  movimiento });
-    } catch (error) { next(error); }
+      const movimiento = await MovimientoCombustibleService.create(
+        data,
+        req.usuario.id,
+      );
+      res.status(201).json({ success: true, data: movimiento });
+    } catch (error) {
+      next(error);
+    }
   },
 };

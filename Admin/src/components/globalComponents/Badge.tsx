@@ -1,9 +1,10 @@
-// src/components/usuarios/Badge.tsx
+import { memo } from "react";
+
 interface BadgeProps {
   activo: boolean;
 }
 
-export const Badge = ({ activo }: BadgeProps) => (
+export const Badge = memo(({ activo }: BadgeProps) => (
   <span
     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
       activo
@@ -13,4 +14,4 @@ export const Badge = ({ activo }: BadgeProps) => (
   >
     {activo ? "Activo" : "Inactivo"}
   </span>
-);
+));

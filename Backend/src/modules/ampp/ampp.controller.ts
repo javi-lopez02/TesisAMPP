@@ -6,7 +6,7 @@ export const AsambleaController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const asambleas = await AsambleaService.findAll();
-      res.json({ success: true, asambleas });
+      res.json({ success: true, data: asambleas });
     } catch (error) {
       next(error);
     }
@@ -27,7 +27,7 @@ export const AsambleaController = {
       const asamblea = await AsambleaService.create(data);
       res
         .status(201)
-        .json({ success: true, message: "Asamblea creada", asamblea });
+        .json({ success: true, message: "Asamblea creada", data: asamblea });
     } catch (error) {
       next(error);
     }
@@ -40,7 +40,7 @@ export const AsambleaController = {
         req.params.id as string,
         data,
       );
-      res.json({ success: true, message: "Asamblea actualizada", asamblea });
+      res.json({ success: true, message: "Asamblea actualizada", data: asamblea });
     } catch (error) {
       next(error);
     }

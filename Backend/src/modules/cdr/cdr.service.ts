@@ -3,22 +3,28 @@ import { CreateCdrInput, UpdateCdrInput } from "./cdr.dto";
 
 export const CDRService = {
   async findAll(zonaId?: string) {
-    const where: any = { activo: true };
-    if (zonaId) where.zonaId = zonaId;
-
-    return await prisma.cDR.findMany({
-      where,
-      orderBy: { numero: "asc" },
-      include: {
-        zona: true,
-        _count: { select: { puntoRutas: true } },
-      },
-    });
+    if (zonaId) {
+      return await prisma.cDR.findMany({
+        where: { zonaId },
+        orderBy: { numero: "asc" },
+        include: {
+          zona: true,
+          _count: { select: { puntoRutas: true } },
+        },
+      });
+    } else
+      return await prisma.cDR.findMany({
+        orderBy: { numero: "asc" },
+        include: {
+          zona: true,
+          _count: { select: { puntoRutas: true } },
+        },
+      });
   },
 
   async findById(id: string) {
     const cdr = await prisma.cDR.findUnique({
-      where: { id, activo: true },
+      where: { id },
       include: {
         zona: true,
       },
@@ -29,7 +35,7 @@ export const CDRService = {
 
   async create(data: CreateCdrInput) {
     const zona = await prisma.zona.findUnique({
-      where: { id: data.zonaId, activo: true },
+      where: { id: data.zonaId },
       select: { id: true },
     });
     if (!zona) throw new Error("Zona no encontrada o inactiva");
@@ -47,7 +53,7 @@ export const CDRService = {
   async update(id: string, data: UpdateCdrInput) {
     try {
       return await prisma.cDR.update({
-        where: { id, activo: true },
+        where: { id },
         data: data,
         include: { zona: true },
       });

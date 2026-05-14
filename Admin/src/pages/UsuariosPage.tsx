@@ -1,5 +1,5 @@
 // src/pages/UsuariosPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -19,28 +19,29 @@ import type {
   getUsuario,
   createUsuario,
   updateUsuario,
+  FormState,
+  RolUsuario,
 } from "../types/usuarios.types";
 import { DeleteModal } from "../components/usuarios/ModalDelete";
-import { Badge } from "../components/usuarios/Badge";
+import { Badge } from "../components/globalComponents/Badge";
 import { AssignmentPill } from "../components/usuarios/StatPill";
 import { SidePanel } from "../components/usuarios/SidePanel";
-
-// ── Tipos locales ─────────────────────────────────────────────────────────────
-type FormMode = "crear" | "editar";
-
-export interface FormState {
-  correo: string;
-  contrasenia: string;
-  nombre: string;
-  apellidos: string;
-  rol:
-    | "DELEGADO"
-    | "SUPERVISOR"
-    | "PRESIDENTE_CONSEJO"
-    | "CHOFER"
-    | "ADMINISTRADOR";
-  activo: boolean;
-}
+import type { FormMode } from "../types/globalTypes";
+import {
+  ROL_LABELS,
+  ROL_COLORS,
+  getRolLabel,
+  getRolColor,
+  formatearFechaCorta,
+  formatearIniciales,
+  aplicarFiltrosUsuarios,
+  type FiltrosUsuarios,
+  validarFormUsuario,
+  type ValidationResult,
+  calcularMetricasUsuarios,
+  type MetricasUsuarios,
+  prepararPayloadUsuario,
+} from "../components/usuarios/HelpersUsers";
 
 const FORM_INITIAL: FormState = {
   correo: "",
@@ -51,46 +52,13 @@ const FORM_INITIAL: FormState = {
   activo: true,
 };
 
-// ── Helpers para roles ────────────────────────────────────────────────────────
-const getRolLabel = (
-  rol: FormState["rol"],
-): string => {
-  const labels: Record<FormState["rol"], string> = {
-    ADMINISTRADOR: "Administrador",
-    DELEGADO: "Delegado de Circunscripción",
-    SUPERVISOR: "Supervisor",
-    PRESIDENTE_CONSEJO: "Presidente de Consejo",
-    CHOFER: "Chofer",
-  };
-  return labels[rol];
-};
-
-const getRolColor = (
-  rol: FormState["rol"],
-): string => {
-  const colors: Record<FormState["rol"], string> = {
-    ADMINISTRADOR:
-      "bg-[#1B3D8F]/10 text-[#1B3D8F] dark:bg-[#1B3D8F]/20 dark:text-[#85B7EB]",
-    SUPERVISOR:
-      "bg-[#8B5CF6]/10 text-[#8B5CF6] dark:bg-[#8B5CF6]/20 dark:text-[#C4B5FD]",
-    PRESIDENTE_CONSEJO:
-      "bg-[#3B6D11]/10 text-[#3B6D11] dark:bg-[#3B6D11]/20 dark:text-[#9FD97A]",
-    DELEGADO:
-      "bg-[#B77C1B]/10 text-[#B77C1B] dark:bg-[#B77C1B]/20 dark:text-[#E8C57A]",
-    CHOFER: "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/40",
-  };
-  return colors[rol];
-};
-
 // ── UsuariosPage ──────────────────────────────────────────────────────────────
 export const UsuariosPage = () => {
   const { usuarios, loading, error, create, update, getAll, softDelete } =
     useUsuarios();
 
   const [search, setSearch] = useState("");
-  const [filterRol, setFilterRol] = useState<
-    "todos" | FormState["rol"]
-  >("todos");
+  const [filterRol, setFilterRol] = useState<"todos" | RolUsuario>("todos");
   const [filterActivo, setFilterActivo] = useState<
     "todos" | "activo" | "inactivo"
   >("todos");
@@ -110,61 +78,48 @@ export const UsuariosPage = () => {
     getAll();
   }, [getAll]);
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
-  const filtered = (usuarios ?? []).filter((u) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      u.nombre.toLowerCase().includes(q) ||
-      u.apellidos.toLowerCase().includes(q) ||
-      u.correo.toLowerCase().includes(q);
+  // ── Métricas (usando helper) ───────────────────────────────────────────────
+  const metricas = useMemo((): MetricasUsuarios => {
+    return calcularMetricasUsuarios(usuarios);
+  }, [usuarios]);
 
-    const matchRol = filterRol === "todos" ? true : u.rol === filterRol;
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosUsuarios = useMemo(
+    () => ({
+      search,
+      filterRol,
+      filterActivo,
+    }),
+    [search, filterRol, filterActivo],
+  );
 
-    const matchActivo =
-      filterActivo === "todos"
-        ? true
-        : filterActivo === "activo"
-        ? u.activo
-        : !u.activo;
+  const filtered = useMemo(() => {
+    return aplicarFiltrosUsuarios(usuarios, filtros);
+  }, [usuarios, filtros]);
 
-    return matchSearch && matchRol && matchActivo;
-  });
+  // ── Validación (usando helper) ─────────────────────────────────────────────
+  const validate = useCallback((): boolean => {
+    const result: ValidationResult = validarFormUsuario(
+      form,
+      usuarios,
+      editingId,
+      panelMode,
+    );
+    setFormErrors(result.errors);
+    return result.isValid;
+  }, [form, usuarios, editingId, panelMode]);
 
-  // ── Validación ────────────────────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormState, string>> = {};
-
-    if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio";
-    if (!form.apellidos.trim()) errs.apellidos = "Los apellidos son obligatorios";
-
-    if (!form.correo.trim()) {
-      errs.correo = "El correo es obligatorio";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
-      errs.correo = "Formato de correo inválido";
-    }
-
-    // Contraseña obligatoria solo en creación
-    if (panelMode === "crear" && !form.contrasenia) {
-      errs.contrasenia = "La contraseña es obligatoria";
-    } else if (form.contrasenia && form.contrasenia.length < 6) {
-      errs.contrasenia = "Mínimo 6 caracteres";
-    }
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  // ── Handlers ─────────────────────────────────────────────────────────────────
-  const handleNuevo = () => {
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleNuevo = useCallback(() => {
     setForm({ ...FORM_INITIAL, contrasenia: "" });
     setFormErrors({});
     setEditingId(null);
     setPanelMode("crear");
     setShowPassword(false);
     setPanelOpen(true);
-  };
+  }, []);
 
-  const handleEditar = (u: getUsuario) => {
+  const handleEditar = useCallback((u: getUsuario) => {
     setForm({
       correo: u.correo,
       contrasenia: "", // No se muestra la contraseña existente
@@ -178,19 +133,14 @@ export const UsuariosPage = () => {
     setPanelMode("editar");
     setShowPassword(false);
     setPanelOpen(true);
-  };
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) return;
     setLoadingSubmit(true);
     try {
-      // Preparar payload: en edición, omitir campos vacíos para no sobrescribir
-      const { contrasenia, ...basePayload } = form;
-
-      const payload =
-        panelMode === "crear" || contrasenia.trim()
-          ? { ...basePayload, contrasenia: contrasenia.trim() }
-          : basePayload;
+      // 🔹 Usar helper para preparar payload
+      const payload = prepararPayloadUsuario(form, panelMode);
 
       if (panelMode === "crear") {
         await create(payload as createUsuario);
@@ -202,18 +152,18 @@ export const UsuariosPage = () => {
     } finally {
       setLoadingSubmit(false);
     }
-  };
+  }, [validate, form, panelMode, editingId, create, update]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
       await softDelete(deleteTarget.id);
     } finally {
       setDeleteTarget(null);
     }
-  };
+  }, [deleteTarget, softDelete]);
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="font-['Sora',sans-serif]">
       {/* Modal eliminar */}
@@ -241,8 +191,7 @@ export const UsuariosPage = () => {
                 </h1>
               </div>
               <p className="mt-1 text-[12px] text-gray-400 dark:text-white/40">
-                {(usuarios ?? []).filter((u) => u.activo).length} activos ·{" "}
-                {(usuarios ?? []).length} en total
+                {metricas.activos} activos · {metricas.total} en total
               </p>
             </div>
             <button
@@ -254,6 +203,60 @@ export const UsuariosPage = () => {
               Nuevo usuario
             </button>
           </div>
+
+          {/* Tarjetas de resumen (opcional, usando helpers) */}
+          {!loading && usuarios !== null && usuarios.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#1B3D8F]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                  Total usuarios
+                </p>
+                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                  {metricas.total}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                  {metricas.inactivos} inactivos
+                </p>
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#3B6D11]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                  Con consejo asignado
+                </p>
+                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                  {metricas.conConsejo}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                  presidentes de consejo
+                </p>
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#B77C1B]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                  Con circunscripción
+                </p>
+                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                  {metricas.conCircunscripcion}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                  delegados activos
+                </p>
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#8B5CF6]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                  Administradores
+                </p>
+                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                  {metricas.porRol.ADMINISTRADOR}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                  con acceso completo
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Filtros */}
           <div className="mb-4 flex flex-wrap gap-2">
@@ -282,11 +285,11 @@ export const UsuariosPage = () => {
                 className="px-3.5 py-2 text-[12px] font-semibold text-gray-400 bg-transparent outline-none cursor-pointer dark:text-white/40"
               >
                 <option value="todos">Todos los roles</option>
-                <option value="ADMINISTRADOR">Administrador</option>
-                <option value="SUPERVISOR">Supervisor</option>
-                <option value="PRESIDENTE_CONSEJO">Presidente Consejo</option>
-                <option value="DELEGADO">Delegado</option>
-                <option value="CHOFER">Chofer</option>
+                {(Object.keys(ROL_LABELS) as RolUsuario[]).map((rol) => (
+                  <option key={rol} value={rol}>
+                    {ROL_LABELS[rol]}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -307,6 +310,53 @@ export const UsuariosPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Chip de filtros activos */}
+          {(filterRol !== "todos" || filterActivo !== "todos" || search) && (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-gray-400 dark:text-white/30">
+                Filtros:
+              </span>
+              {filterRol !== "todos" && (
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${ROL_COLORS[filterRol as RolUsuario]}`}
+                >
+                  {ROL_LABELS[filterRol as RolUsuario]}
+                  <button
+                    onClick={() => setFilterRol("todos")}
+                    className="opacity-60 hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filterActivo !== "todos" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1B3D8F]/10 px-2.5 py-1 text-[11px] font-semibold text-[#1B3D8F] dark:bg-[#1B3D8F]/20 dark:text-[#85B7EB]">
+                  {filterActivo === "activo" ? "Activos" : "Inactivos"}
+                  <button
+                    onClick={() => setFilterActivo("todos")}
+                    className="opacity-60 hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {search && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:bg-white/10 dark:text-white/40">
+                  "{search}"
+                  <button
+                    onClick={() => setSearch("")}
+                    className="opacity-60 hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              <span className="text-[11px] text-gray-400 dark:text-white/30">
+                — {filtered.length} resultado(s)
+              </span>
+            </div>
+          )}
 
           {/* Estado: cargando */}
           {loading && usuarios === null && (
@@ -374,18 +424,17 @@ export const UsuariosPage = () => {
                       gridTemplateColumns: "1.5fr 1.2fr 1fr 1fr 1fr 80px 40px",
                     }}
                   >
-                    {/* Usuario: Nombre + Apellidos */}
+                    {/* Usuario: Nombre + Apellidos + Iniciales */}
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20 text-[11px] font-bold text-[#1B3D8F] dark:text-[#85B7EB] uppercase">
-                        {u.nombre[0]}
-                        {u.apellidos[0]}
+                        {formatearIniciales(u.nombre, u.apellidos)}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-[13px] font-bold text-[#0e1f4d] dark:text-white">
                           {u.nombre} {u.apellidos}
                         </p>
                         <p className="text-[11px] text-gray-400 dark:text-white/30">
-                          Creado: {new Date(u.createdAt).toLocaleDateString()}
+                          Creado: {formatearFechaCorta(u.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -419,7 +468,6 @@ export const UsuariosPage = () => {
                         <AssignmentPill
                           value={u.consejoPopularPresidente.nombre}
                           icon={<Building2 size={10} />}
-                          tooltip="Consejo asignado"
                         />
                       ) : (
                         <span className="text-[11px] text-gray-300 dark:text-white/20">
@@ -434,7 +482,6 @@ export const UsuariosPage = () => {
                         <AssignmentPill
                           value={u.circunscripcionDelegado.nombre}
                           icon={<MapPin size={10} />}
-                          tooltip="Circunscripción asignada"
                         />
                       ) : (
                         <span className="text-[11px] text-gray-300 dark:text-white/20">

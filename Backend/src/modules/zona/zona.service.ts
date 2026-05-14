@@ -4,17 +4,23 @@ import { CreateZonaInput, UpdateZonaInput } from "./zona.dto";
 
 export const ZonaService = {
   async findAll(circunscripcionId?: string) {
-    const where: any = { activo: true };
-    if (circunscripcionId) where.circunscripcionId = circunscripcionId;
-
-    return await prisma.zona.findMany({
-      where,
-      orderBy: { nombre: "asc" },
-      include: {
-        circunscripcion: true,
-        _count: { select: { cdrs: true, puntoRutas: true } },
-      },
-    });
+    if (circunscripcionId) {
+      return await prisma.zona.findMany({
+        where: { circunscripcionId },
+        orderBy: { nombre: "asc" },
+        include: {
+          circunscripcion: true,
+          _count: { select: { cdrs: true, puntoRutas: true } },
+        },
+      });
+    } else
+      return await prisma.zona.findMany({
+        orderBy: { nombre: "asc" },
+        include: {
+          circunscripcion: true,
+          _count: { select: { cdrs: true, puntoRutas: true } },
+        },
+      });
   },
 
   async findById(id: string) {
@@ -34,7 +40,7 @@ export const ZonaService = {
 
   async create(data: CreateZonaInput) {
     const circ = await prisma.circunscripcion.findUnique({
-      where: { id: data.circunscripcionId, activo: true },
+      where: { id: data.circunscripcionId },
       select: { id: true },
     });
     if (!circ) throw new Error("Circunscripción no encontrada o inactiva");
@@ -55,7 +61,7 @@ export const ZonaService = {
   async update(id: string, data: UpdateZonaInput) {
     try {
       return await prisma.zona.update({
-        where: { id, activo: true },
+        where: { id },
         data: data,
         include: { circunscripcion: true },
       });
@@ -69,7 +75,7 @@ export const ZonaService = {
 
   async softDelete(id: string) {
     const cdrsActivos = await prisma.cDR.count({
-      where: { zonaId: id, activo: true },
+      where: { zonaId: id },
     });
     if (cdrsActivos > 0)
       throw new Error(

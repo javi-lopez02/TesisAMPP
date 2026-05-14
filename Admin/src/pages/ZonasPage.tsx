@@ -1,5 +1,5 @@
 // src/pages/ZonasPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -10,22 +10,21 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useZonas } from "../hooks/useZonas";
-import type { getZonas } from "../types/zonas.types";
+import type { FormState, getZonas } from "../types/zonas.types";
 import { DeleteModal } from "../components/zonas/ModalDelete";
-import { StatPill } from "../components/zonas/StatPill";
-import { Badge } from "../components/zonas/Badge";
+import { StatPill } from "../components/globalComponents/StatPill";
+import { Badge } from "../components/globalComponents/Badge";
 import { SidePanel } from "../components/zonas/SidePanel";
 import { useCircunscripciones } from "../hooks/useCircunscripciones";
+import type { FormMode } from "../types/globalTypes";
 
-// ── Tipos locales ─────────────────────────────────────────────────────────────
-type FormMode = "crear" | "editar";
-
-export interface FormState {
-  nombre: string;
-  codigo: string;
-  activo: boolean;
-  circunscripcionId: string;
-}
+// 🔹 IMPORTAR HELPERS (solo filtro y validación)
+import {
+  aplicarFiltrosZonas,
+  type FiltrosZonas,
+  validarFormZona,
+  type ValidationResult,
+} from "../components/zonas/HelpersZonas";
 
 const FORM_INITIAL: FormState = {
   nombre: "",
@@ -38,7 +37,7 @@ const FORM_INITIAL: FormState = {
 export const ZonasPage = () => {
   const { zonas, loading, error, create, update, getAll, softDelete } =
     useZonas();
-  const { circunscripciones , getAll: getAllCircunscipcion } =
+  const { circunscripciones, getAll: getAllCircunscipcion } =
     useCircunscripciones();
 
   const [search, setSearch] = useState("");
@@ -57,50 +56,28 @@ export const ZonasPage = () => {
 
   useEffect(() => {
     getAll();
-    getAllCircunscipcion()
+    getAllCircunscipcion();
   }, [getAll, getAllCircunscipcion]);
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
-  const filtered = (zonas ?? []).filter((z) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      z.nombre.toLowerCase().includes(q) ||
-      z.codigo?.toLowerCase().includes(q) ||
-      z.circunscripcion?.nombre.toLowerCase().includes(q);
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosZonas = useMemo(
+    () => ({
+      search,
+      filterActivo,
+    }),
+    [search, filterActivo],
+  );
 
-    const matchActivo =
-      filterActivo === "todos"
-        ? true
-        : filterActivo === "activo"
-          ? z.activo
-          : !z.activo;
+  const filtered = useMemo(() => {
+    return aplicarFiltrosZonas(zonas, filtros);
+  }, [zonas, filtros]);
 
-    return matchSearch && matchActivo;
-  });
-
-  // ── Validación ────────────────────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormState, string>> = {};
-
-    if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio";
-
-    if (!form.codigo.trim()) errs.codigo = "El código es obligatorio";
-    else if (!/^Z-[A-Z]{2,6}-\d{3}$/.test(form.codigo))
-      errs.codigo = "Formato: Z-XXX-000";
-
-    if (!form.circunscripcionId)
-      errs.circunscripcionId = "Debes seleccionar una circunscripción";
-
-    const duplicado = (zonas ?? []).find(
-      (z) =>
-        z.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-        z.id !== editingId,
-    );
-    if (duplicado) errs.nombre = "Ya existe una zona con ese nombre";
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  // ── Validación (usando helper) ─────────────────────────────────────────────
+  const validate = useCallback((): boolean => {
+    const result: ValidationResult = validarFormZona(form, zonas, editingId);
+    setFormErrors(result.errors);
+    return result.isValid;
+  }, [form, zonas, editingId]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleNuevo = () => {

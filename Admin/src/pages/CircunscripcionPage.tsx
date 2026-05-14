@@ -1,5 +1,5 @@
 // src/pages/CircunscripcionesPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -9,25 +9,26 @@ import {
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
-import { StatPill } from "../components/circunscripciones/StatPill";
-import { Badge } from "../components/circunscripciones/Badge";
+import { StatPill } from "../components/globalComponents/StatPill";
+import { Badge } from "../components/globalComponents/Badge";
 import { SidePanel } from "../components/circunscripciones/SidePanel";
 import { DeleteModal } from "../components/circunscripciones/ModalDelete";
 import { useCircunscripciones } from "../hooks/useCircunscripciones";
-import type { getCircunscripcion } from "../types/circunscripcion.types";
+import type {
+  FormState,
+  getCircunscripcion,
+} from "../types/circunscripcion.types";
 import { useConsejoPopular } from "../hooks/useConsejoPopular";
 import { useUsuarios } from "../hooks/useUsuario";
+import type { FormMode } from "../types/globalTypes";
 
-// ── Tipos locales ─────────────────────────────────────────────────────────────
-type FormMode = "crear" | "editar";
-
-export interface FormState {
-  nombre: string;
-  codigo: string;
-  activo: boolean;
-  delegadoId: string;
-  consejoPopularId: string;
-}
+// 🔹 IMPORTAR HELPERS (solo filtro y validación)
+import {
+  aplicarFiltrosCircunscripciones,
+  type FiltrosCircunscripciones,
+  validarFormCircunscripcion,
+  type ValidationResult,
+} from "../components/circunscripciones/HelpersCircunscripciones";
 
 const FORM_INITIAL: FormState = {
   nombre: "",
@@ -71,52 +72,32 @@ export const CircunscripcionPage = () => {
   useEffect(() => {
     getAll();
     getAllConsejos();
-    getAllUsuarios({rol: "DELEGADO"});
+    getAllUsuarios({ rol: "DELEGADO" });
   }, [getAll, getAllConsejos, getAllUsuarios]);
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
-  const filtered = (circunscripciones ?? []).filter((c) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      c.nombre.toLowerCase().includes(q) ||
-      c.codigo?.toLowerCase().includes(q) ||
-      c.delegado?.nombre.toLowerCase().includes(q) ||
-      c.delegado?.apellidos.toLowerCase().includes(q) ||
-      c.consejoPopular?.nombre.toLowerCase().includes(q);
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosCircunscripciones = useMemo(
+    () => ({
+      search,
+      filterActivo,
+    }),
+    [search, filterActivo],
+  );
 
-    const matchActivo =
-      filterActivo === "todos"
-        ? true
-        : filterActivo === "activo"
-          ? c.activo
-          : !c.activo;
+  const filtered = useMemo(() => {
+    return aplicarFiltrosCircunscripciones(circunscripciones, filtros);
+  }, [circunscripciones, filtros]);
 
-    return matchSearch && matchActivo;
-  });
-
-  // ── Validación ────────────────────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormState, string>> = {};
-
-    if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio";
-
-    if (!form.codigo.trim()) errs.codigo = "El código es obligatorio";
-    else if (!/^C-[A-Z]{2,6}-\d{3}$/.test(form.codigo))
-      errs.codigo = "Formato: C-XXX-000";
-
-    if (!form.consejoPopularId)
-      errs.consejoPopularId = "Debes seleccionar un consejo popular";
-
-    const duplicado = (circunscripciones ?? []).find(
-      (c) =>
-        c.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-        c.id !== editingId,
+  // ── Validación (usando helper) ─────────────────────────────────────────────
+  const validate = useCallback((): boolean => {
+    const result: ValidationResult = validarFormCircunscripcion(
+      form,
+      circunscripciones,
+      editingId,
     );
-    if (duplicado) errs.nombre = "Ya existe una circunscripción con ese nombre";
-
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+    setFormErrors(result.errors);
+    return result.isValid;
+  }, [form, circunscripciones, editingId]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleNuevo = () => {

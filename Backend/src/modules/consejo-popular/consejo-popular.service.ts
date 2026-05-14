@@ -4,7 +4,6 @@ import { CreateConsejoInput, UpdateConsejoInput } from "./consejo-popular.dto";
 export const ConsejoPopularService = {
   async findAll() {
     return await prisma.consejoPopular.findMany({
-      where: { activo: true },
       include: {
         _count: {
           select: {
@@ -44,7 +43,7 @@ export const ConsejoPopularService = {
   async update(id: string, data: UpdateConsejoInput) {
     try {
       return await prisma.consejoPopular.update({
-        where: { id, activo: true },
+        where: { id },
         data,
         include: {
           presidente: true,
@@ -62,7 +61,7 @@ export const ConsejoPopularService = {
   async softDelete(id: string) {
     try {
       return await prisma.consejoPopular.update({
-        where: { id, activo: true },
+        where: { id },
         data: { activo: false },
       });
     } catch (error: any) {

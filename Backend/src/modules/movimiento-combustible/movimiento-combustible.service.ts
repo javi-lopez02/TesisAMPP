@@ -30,11 +30,11 @@ export const MovimientoCombustibleService = {
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
-        asamblea: { select: { id: true, nombre: true, codigo: true } },
-        tipoCombustible: { select: { id: true, nombre: true, codigo: true } },
-        usuario: {
-          select: { id: true, nombre: true, apellidos: true, rol: true },
-        },
+        asamblea: true,
+        tipoCombustible: true,
+        usuario: true,
+        inventarioCombustible: true,
+        asignacions: true,
       },
     });
 
@@ -50,17 +50,11 @@ export const MovimientoCombustibleService = {
     const movimiento = await prisma.movimientoCombustible.findUnique({
       where: { id },
       include: {
-        asamblea: {
-          select: { id: true, nombre: true, servicentroNombre: true },
-        },
-        tipoCombustible: {
-          select: { id: true, nombre: true, precioPorLitro: true },
-        },
-        usuario: {
-          select: { id: true, nombre: true, correo: true, rol: true },
-        },
-        inventarioCombustible: { select: { id: true, saldoActual: true } },
-        asignacions: { select: { id: true, codigo: true, estado: true } },
+        asamblea: true,
+        tipoCombustible: true,
+        usuario: true,
+        inventarioCombustible: true,
+        asignacions: true,
       },
     });
     if (!movimiento) throw new Error("Movimiento no encontrado");
@@ -89,73 +83,127 @@ export const MovimientoCombustibleService = {
 
   async create(data: CreateMovimientoCombustibleInput, usuarioId: string) {
     return await prisma.$transaction(async (tx) => {
+      const { tipo, cantidad, observaciones, asambleaId, tipoCombustibleId } =
+        data;
+
+      // 🔹 1. Validar que tipoCombustible existe
+      const tipoCombustible = await tx.tipoCombustible.findUnique({
+        where: { id: tipoCombustibleId },
+      });
+      if (!tipoCombustible) {
+        throw new Error("Tipo de combustible no encontrado");
+      }
+
+      // 🔹 2. Buscar inventario existente para esta combinación asamblea + tipoCombustible
+      let inventario = await tx.inventarioCombustible.findFirst({
+        where: {
+          asambleaId,
+          tipoCombustibleId,
+        },
+      });
+
       let saldoAnterior = 0;
       let saldoNuevo = 0;
       let inventarioId: string | null = null;
 
-      // 1. Si hay inventario asociado, validar y calcular saldos
-      if (data.inventarioCombustibleId) {
-        const inventario = await tx.inventarioCombustible.findUnique({
-          where: { id: data.inventarioCombustibleId },
-        });
-        if (!inventario) throw new Error("Inventario no encontrado");
-        if (
-          inventario.asambleaId !== data.asambleaId ||
-          inventario.tipoCombustibleId !== data.tipoCombustibleId
-        ) {
+      // 🔹 3. Lógica según tipo de movimiento
+      if (tipo === "ASIGNACION_INICIAL") {
+        if (!inventario) {
+          // ➕ CREAR nuevo inventario con saldo inicial
+          inventario = await tx.inventarioCombustible.create({
+            data: {
+              asambleaId,
+              tipoCombustibleId,
+              cantidadAsignada: numberToDecimal(cantidad),
+              saldoActual: numberToDecimal(cantidad),
+              fechaUltimaActualizacion: new Date(),
+            },
+          });
+          saldoAnterior = 0;
+          saldoNuevo = cantidad;
+        } else {
+          // ➕ SUMAR al inventario existente
+          saldoAnterior = decimalToNumber(inventario.saldoActual) || 0;
+          saldoNuevo = saldoAnterior + cantidad;
+
+          inventario = await tx.inventarioCombustible.update({
+            where: { id: inventario.id },
+            data: {
+              cantidadAsignada: { increment: numberToDecimal(cantidad) },
+              saldoActual: numberToDecimal(saldoNuevo),
+              fechaUltimaActualizacion: new Date(),
+            },
+          });
+        }
+        inventarioId = inventario.id;
+      } else {
+        // 🔹 Para DEVOLUCION, AJUSTE, MERMA, ASIGNACION_SOLICITUD: el inventario DEBE existir
+        if (!inventario) {
           throw new Error(
-            "El inventario no coincide con la Asamblea y Tipo de Combustible seleccionados",
+            `No se puede registrar "${tipo}": No existe inventario para este tipo de combustible en esta asamblea. ` +
+              `Primero debe crear una "Asignación Inicial".`,
           );
         }
 
-        saldoAnterior = Number(inventario.saldoActual);
+        saldoAnterior = decimalToNumber(inventario.saldoActual) || 0;
         inventarioId = inventario.id;
 
-        // Determinar signo según tipo de movimiento
-        let delta = data.cantidad;
-        if (["ASIGNACION_SOLICITUD", "MERMA"].includes(data.tipo)) {
-          delta = -delta; // Restan al inventario
+        // 🔹 Calcular nuevo saldo según tipo
+        let delta = 0;
+        switch (tipo) {
+          case "DEVOLUCION":
+            delta = cantidad; // Devolución suma al saldo
+            break;
+          case "AJUSTE":
+            delta = cantidad; // Ajuste respeta el signo de cantidad (positivo o negativo)
+            break;
+          case "MERMA":
+          case "ASIGNACION_SOLICITUD":
+            delta = -cantidad; // Restan del saldo
+            break;
         }
-        // ASIGNACION_INICIAL, DEVOLUCION, AJUSTE -> suman (AJUSTE respeta signo de cantidad)
 
         saldoNuevo = saldoAnterior + delta;
+
+        // Validar que no haya saldo negativo
         if (saldoNuevo < 0) {
           throw new Error(
-            "Saldo insuficiente en inventario para esta operación",
+            `Saldo insuficiente: ${saldoAnterior}L - ${Math.abs(delta)}L = ${saldoNuevo}L. ` +
+              `No se puede realizar esta operación.`,
           );
         }
 
-        // Actualizar inventario atómicamente
-        await tx.inventarioCombustible.update({
-          where: { id: inventarioId },
+        // Actualizar inventario
+        inventario = await tx.inventarioCombustible.update({
+          where: { id: inventario.id },
           data: {
             saldoActual: numberToDecimal(saldoNuevo),
             fechaUltimaActualizacion: new Date(),
+            // Opcional: actualizar cantidadAsignada solo para ciertos tipos
+            // cantidadAsignada: tipo === "ASIGNACION_SOLICITUD" ? { increment: numberToDecimal(cantidad) } : undefined
           },
         });
-      } else {
-        // Movimiento sin control de inventario (ej. registro histórico puro)
-        saldoAnterior = 0;
-        saldoNuevo = data.cantidad;
       }
 
-      // 2. Crear registro del movimiento
+      // 🔹 4. Crear registro del movimiento (auditoría)
       const movimiento = await tx.movimientoCombustible.create({
         data: {
-          tipo: data.tipo,
-          cantidad: numberToDecimal(data.cantidad),
+          tipo,
+          cantidad: numberToDecimal(cantidad),
           saldoAnterior: numberToDecimal(saldoAnterior),
           saldoNuevo: numberToDecimal(saldoNuevo),
-          observaciones: data.observaciones,
-          asambleaId: data.asambleaId,
-          tipoCombustibleId: data.tipoCombustibleId,
+          observaciones,
+          asambleaId,
+          tipoCombustibleId,
           usuarioId,
           inventarioCombustibleId: inventarioId,
         },
         include: {
-          asamblea: { select: { id: true, nombre: true } },
-          tipoCombustible: { select: { id: true, nombre: true } },
-          usuario: { select: { id: true, nombre: true } },
+          asamblea: true,
+          tipoCombustible: true,
+          usuario: true,
+          inventarioCombustible: true,
+          asignacions: true,
         },
       });
 

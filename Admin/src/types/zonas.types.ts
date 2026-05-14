@@ -28,3 +28,10 @@ export interface updateZona {
   activo: boolean;
   circunscripcionId: string;
 }
+
+export interface FormState {
+  nombre: string;
+  codigo: string;
+  activo: boolean;
+  circunscripcionId: string;
+}

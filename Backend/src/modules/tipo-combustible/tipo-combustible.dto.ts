@@ -10,6 +10,7 @@ export const updateTipoCombustibleSchema = z.object({
   nombre: z.string().min(2).optional(),
   codigo: z.string().min(1).optional(),
   precioPorLitro: z.coerce.number().positive().optional(),
+  activo: z.boolean().optional(),
 });
 
 export type CreateTipoCombustibleInput = z.infer<

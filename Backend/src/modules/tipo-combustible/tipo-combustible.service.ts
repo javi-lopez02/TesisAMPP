@@ -8,7 +8,6 @@ import {
 export const TipoCombustibleService = {
   async findAll() {
     const tipos = await prisma.tipoCombustible.findMany({
-      where: { activo: true },
       orderBy: { nombre: "asc" },
       include: {
         _count: {
@@ -31,7 +30,7 @@ export const TipoCombustibleService = {
 
   async findById(id: string) {
     const tipo = await prisma.tipoCombustible.findUnique({
-      where: { id, activo: true },
+      where: { id },
       include: {
         vehiculos: {
           where: { activo: true },
@@ -59,6 +58,17 @@ export const TipoCombustibleService = {
           ...data,
           precioPorLitro: numberToDecimal(data.precioPorLitro),
         },
+        include: {
+          _count: {
+            select: {
+              vehiculos: { where: { activo: true } },
+              inventarioCombustibles: true,
+              movimientoCombustibles: true,
+              solicituds: true,
+              asignacions: true,
+            },
+          },
+        },
       });
       return { ...tipo, precioPorLitro: decimalToNumber(tipo.precioPorLitro) };
     } catch (error: any) {
@@ -76,8 +86,19 @@ export const TipoCombustibleService = {
       }
 
       const tipo = await prisma.tipoCombustible.update({
-        where: { id, activo: true },
+        where: { id },
         data: updateData,
+        include: {
+          _count: {
+            select: {
+              vehiculos: { where: { activo: true } },
+              inventarioCombustibles: true,
+              movimientoCombustibles: true,
+              solicituds: true,
+              asignacions: true,
+            },
+          },
+        },
       });
       return { ...tipo, precioPorLitro: decimalToNumber(tipo.precioPorLitro) };
     } catch (error: any) {

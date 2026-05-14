@@ -1,7 +1,6 @@
 interface AssignmentPillProps {
   value: string;
   icon: React.ReactNode;
-  tooltip?: string;
 }
 
 export const AssignmentPill = ({ value, icon }: AssignmentPillProps) => {

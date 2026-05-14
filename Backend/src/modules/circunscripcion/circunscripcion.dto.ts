@@ -5,12 +5,14 @@ export const createCircunscripcionSchema = z.object({
   codigo: z.string().min(1, "El código es obligatorio"),
   consejoPopularId: z.string().uuid("ID de Consejo Popular inválido"),
   delegadoId: z.string().uuid().optional(),
+  activo: z.boolean().optional(),
 });
 
 export const updateCircunscripcionSchema = z.object({
   nombre: z.string().min(2).optional(),
   codigo: z.string().min(1).optional(),
   delegadoId: z.string().uuid().optional().nullable(),
+  activo: z.boolean().optional(),
 });
 
 export type CreateCircunscripcionInput = z.infer<

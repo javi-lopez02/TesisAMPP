@@ -1,91 +1,125 @@
 // src/layouts/MainLayout.tsx
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Sun, Moon, LogOut, LogIn, Menu, X,
-  LayoutDashboard, FileText, ClipboardList,
-  Building2, Truck, Fuel, Map, 
-  ChevronDown, Plus, Wrench, BarChart3,
-  Layers, MapPin, GitBranch, PackageSearch, ArrowLeftRight,
+  Sun,
+  Moon,
+  LogOut,
+  LogIn,
+  Menu,
+  X,
+  LayoutDashboard,
+  FileText,
+  ClipboardList,
+  Building2,
+  Truck,
+  Fuel,
+  Map,
+  ChevronDown,
+  Plus,
+  Wrench,
+  BarChart3,
+  Layers,
+  MapPin,
+  GitBranch,
+  PackageSearch,
+  ArrowLeftRight,
   User, // ⬅️ Nuevo: Icono para Usuarios
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useAppStore }  from "../store/appStore";
+import { useAppStore } from "../store/appStore";
 import { useAuthStore } from "../store/authStore";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface DropdownItem {
-  to:    string;
+  to: string;
   label: string;
-  Icon:  React.ElementType;
+  Icon: React.ElementType;
 }
 
 interface NavItem {
-  to?:       string;           // undefined si tiene dropdown
-  label:     string;
-  Icon:      React.ElementType;
+  to?: string; // undefined si tiene dropdown
+  label: string;
+  Icon: React.ElementType;
   dropdown?: DropdownItem[];
 }
 
 // ── Estructura de navegación ──────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
   {
-    to:    "/dashboard",
+    to: "/dashboard",
     label: "Dashboard",
-    Icon:  LayoutDashboard,
+    Icon: LayoutDashboard,
   },
-  
+
   // 🔹 Solicitudes + Asignaciones (agrupados)
   {
     label: "Solicitudes",
-    Icon:  FileText,
+    Icon: FileText,
     dropdown: [
-      { to: "/solicitudes",        label: "Ver solicitudes",   Icon: ClipboardList },
-      { to: "/solicitudes/nueva",  label: "Agregar solicitud", Icon: Plus          },
-      { to: "/asignaciones",       label: "Asignaciones",      Icon: ClipboardList }, // ⬅️ Movido aquí
+      { to: "/solicitudes", label: "Ver solicitudes", Icon: ClipboardList },
+      { to: "/solicitudes/nueva", label: "Agregar solicitud", Icon: Plus },
+      { to: "/asignaciones", label: "Asignaciones", Icon: ClipboardList }, // ⬅️ Movido aquí
     ],
   },
-  
+
   // 🔹 Lugares (sin cambios)
   {
     label: "Lugares",
-    Icon:  Building2,
+    Icon: Building2,
     dropdown: [
-      { to: "/consejos",             label: "Consejos populares", Icon: Building2 },
-      { to: "/consejos/circunscripciones", label: "Circunscripciones", Icon: GitBranch },
-      { to: "/consejos/zonas",       label: "Zonas",              Icon: Layers    },
-      { to: "/consejos/cdrs",        label: "CDRs",               Icon: MapPin    },
+      { to: "/consejos", label: "Consejos populares", Icon: Building2 },
+      { to: "/circunscripciones", label: "Circunscripciones", Icon: GitBranch },
+      { to: "/zonas", label: "Zonas", Icon: Layers },
+      { to: "/cdrs", label: "CDRs", Icon: MapPin },
     ],
   },
-  
+
   // 🔹 Vehículos + Rutas (agrupados)
   {
     label: "Vehículos",
-    Icon:  Truck,
+    Icon: Truck,
     dropdown: [
-      { to: "/vehiculos",              label: "Ver vehículos",      Icon: Truck      },
-      { to: "/vehiculos/mantenimiento",label: "Mantenimiento",      Icon: Wrench     },
-      { to: "/vehiculos/reportes",     label: "Reportes de consumo",Icon: BarChart3  },
-      { to: "/rutas",                  label: "Rutas",              Icon: Map        }, // ⬅️ Movido aquí
+      { to: "/vehiculos", label: "Ver vehículos", Icon: Truck },
+      { to: "/vehiculos/mantenimiento", label: "Mantenimiento", Icon: Wrench },
+      {
+        to: "/vehiculos/reportes",
+        label: "Reportes de consumo",
+        Icon: BarChart3,
+      },
+      { to: "/rutas", label: "Rutas", Icon: Map }, // ⬅️ Movido aquí
     ],
   },
-  
+
   // 🔹 Combustible (sin cambios)
   {
     label: "Combustible",
-    Icon:  Fuel,
+    Icon: Fuel,
     dropdown: [
-      { to: "/combustible/inventario", label: "Inventario",         Icon: PackageSearch   },
-      { to: "/combustible/movimientos",label: "Movimientos",        Icon: ArrowLeftRight  },
+      {
+        to: "/combustible/tipo",
+        label: "Tipos de Combustible",
+        Icon: PackageSearch,
+      },
+      {
+        to: "/combustible/inventario",
+        label: "Inventario",
+        Icon: PackageSearch,
+      },
+      {
+        to: "/combustible/movimientos",
+        label: "Movimientos",
+        Icon: ArrowLeftRight,
+      },
     ],
   },
-  
+
   // 🔹 Usuarios (nuevo enlace) ⬅️ Agregado
   {
-    to:    "/usuarios",
+    to: "/usuarios",
     label: "Usuarios",
-    Icon:  User,
+    Icon: User,
   },
-  
+
   // {
   //   to:    "/auditoria",
   //   label: "Auditoría",
@@ -94,7 +128,10 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 // ── Hook: cierra el dropdown al hacer click fuera ─────────────────────────────
-const useClickOutside = (ref: React.RefObject<HTMLDivElement>, onClose: () => void) => {
+const useClickOutside = (
+  ref: React.RefObject<HTMLDivElement>,
+  onClose: () => void,
+) => {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
@@ -105,19 +142,15 @@ const useClickOutside = (ref: React.RefObject<HTMLDivElement>, onClose: () => vo
 };
 
 // ── DropdownMenu ──────────────────────────────────────────────────────────────
-const DropdownMenu = ({
-  item,
-  isDark,
-}: {
-  item:   NavItem;
-  isDark: boolean;
-}) => {
-  const location              = useLocation();
-  const [open, setOpen]       = useState(false);
-  const ref                   = useRef<HTMLDivElement>(null!);
+const DropdownMenu = ({ item, isDark }: { item: NavItem; isDark: boolean }) => {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null!);
   useClickOutside(ref, () => setOpen(false));
 
-  const isActive = item.dropdown?.some((d) => location.pathname.startsWith(d.to));
+  const isActive = item.dropdown?.some((d) =>
+    location.pathname.startsWith(d.to),
+  );
 
   return (
     <div ref={ref} className="relative">
@@ -145,9 +178,7 @@ const DropdownMenu = ({
       {open && (
         <div
           className={`absolute left-0 top-full z-50 mt-1.5 min-w-50 overflow-hidden rounded-xl border py-1 shadow-lg ${
-            isDark
-              ? "border-white/10 bg-[#0e1a35]"
-              : "border-black/10 bg-white"
+            isDark ? "border-white/10 bg-[#0e1a35]" : "border-black/10 bg-white"
           }`}
         >
           {item.dropdown!.map(({ to, label, Icon }) => {
@@ -181,11 +212,11 @@ const DropdownMenu = ({
 // ── MainLayout ────────────────────────────────────────────────────────────────
 export const MainLayout = () => {
   const { theme, toggleTheme } = useAppStore();
-  const logout          = useAuthStore((s) => s.logout);
-  const user            = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const location        = useLocation();
-  const navigate        = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
 
@@ -218,25 +249,36 @@ export const MainLayout = () => {
         </div>
 
         <div className="mx-auto flex max-w-9xl items-center justify-between px-4 py-2.5 sm:px-6">
-
           {/* Marca */}
           <Link to="/dashboard" className="flex items-center gap-2.5 group">
             <div
               aria-hidden="true"
               className="h-7 w-7 shrink-0 bg-[#CC1A2E] transition-transform duration-300 group-hover:scale-110"
-              style={{ clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)" }}
+              style={{
+                clipPath:
+                  "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)",
+              }}
             />
             <div className="hidden sm:block">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/50 leading-none">República de Cuba</p>
-              <p className="text-[13px] font-bold text-white leading-tight">Asamblea Municipal</p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/50 leading-none">
+                República de Cuba
+              </p>
+              <p className="text-[13px] font-bold text-white leading-tight">
+                Asamblea Municipal
+              </p>
             </div>
           </Link>
 
           {/* Nav desktop */}
-          <nav aria-label="Navegación principal" className="hidden md:flex items-center gap-0.5">
+          <nav
+            aria-label="Navegación principal"
+            className="hidden md:flex items-center gap-0.5"
+          >
             {NAV_ITEMS.map((item) => {
               if (item.dropdown) {
-                return <DropdownMenu key={item.label} item={item} isDark={isDark} />;
+                return (
+                  <DropdownMenu key={item.label} item={item} isDark={isDark} />
+                );
               }
 
               const active = location.pathname === item.to;
@@ -262,7 +304,6 @@ export const MainLayout = () => {
 
           {/* Controles derecha */}
           <div className="flex items-center gap-2">
-
             {/* Info usuario — desktop */}
             {isAuthenticated && user && (
               <div className="hidden sm:flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5">
@@ -270,7 +311,9 @@ export const MainLayout = () => {
                   {user.nombre?.[0] ?? "U"}
                 </div>
                 <div className="leading-none">
-                  <p className="text-[12px] font-semibold text-white">{user.nombre} {user.apellidos}</p>
+                  <p className="text-[12px] font-semibold text-white">
+                    {user.nombre} {user.apellidos}
+                  </p>
                   <p className="text-[10px] text-white/50 capitalize">
                     {user.rol?.toLowerCase().replace("_", " ") ?? "usuario"}
                   </p>
@@ -281,13 +324,16 @@ export const MainLayout = () => {
             {/* Toggle tema */}
             <button
               onClick={toggleTheme}
-              aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              aria-label={
+                isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
+              }
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/70 transition-all duration-200 hover:bg-white/20 hover:text-white"
             >
-              {isDark
-                ? <Sun  size={15} strokeWidth={2} aria-hidden="true" />
-                : <Moon size={15} strokeWidth={2} aria-hidden="true" />
-              }
+              {isDark ? (
+                <Sun size={15} strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Moon size={15} strokeWidth={2} aria-hidden="true" />
+              )}
             </button>
 
             {/* Botón Salir — desktop */}
@@ -300,10 +346,17 @@ export const MainLayout = () => {
                   : "bg-white/15 hover:bg-white/25"
               }`}
             >
-              {isAuthenticated
-                ? <><LogOut size={13} strokeWidth={2.5} aria-hidden="true" /> Salir</>
-                : <><LogIn  size={13} strokeWidth={2.5} aria-hidden="true" /> Iniciar sesión</>
-              }
+              {isAuthenticated ? (
+                <>
+                  <LogOut size={13} strokeWidth={2.5} aria-hidden="true" />{" "}
+                  Salir
+                </>
+              ) : (
+                <>
+                  <LogIn size={13} strokeWidth={2.5} aria-hidden="true" />{" "}
+                  Iniciar sesión
+                </>
+              )}
             </button>
 
             {/* Hamburger — mobile */}
@@ -313,10 +366,11 @@ export const MainLayout = () => {
               aria-expanded={mobileOpen}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white md:hidden"
             >
-              {mobileOpen
-                ? <X    size={16} aria-hidden="true" />
-                : <Menu size={16} aria-hidden="true" />
-              }
+              {mobileOpen ? (
+                <X size={16} aria-hidden="true" />
+              ) : (
+                <Menu size={16} aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
@@ -326,24 +380,36 @@ export const MainLayout = () => {
           <nav
             aria-label="Menú móvil"
             className={`border-t px-4 py-3 md:hidden ${
-              isDark ? "border-white/10 bg-[#0e1a35]" : "border-white/20 bg-[#1B3D8F]"
+              isDark
+                ? "border-white/10 bg-[#0e1a35]"
+                : "border-white/20 bg-[#1B3D8F]"
             }`}
           >
             <div className="flex flex-col gap-1">
               {NAV_ITEMS.map((item) => {
                 if (item.dropdown) {
                   const isExpanded = mobileExpanded === item.label;
-                  const isActive   = item.dropdown.some((d) => location.pathname.startsWith(d.to));
+                  const isActive = item.dropdown.some((d) =>
+                    location.pathname.startsWith(d.to),
+                  );
 
                   return (
                     <div key={item.label}>
                       <button
-                        onClick={() => setMobileExpanded(isExpanded ? null : item.label)}
+                        onClick={() =>
+                          setMobileExpanded(isExpanded ? null : item.label)
+                        }
                         className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all ${
-                          isActive ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10 hover:text-white"
+                          isActive
+                            ? "bg-white/15 text-white"
+                            : "text-white/65 hover:bg-white/10 hover:text-white"
                         }`}
                       >
-                        <item.Icon size={14} strokeWidth={2.5} aria-hidden="true" />
+                        <item.Icon
+                          size={14}
+                          strokeWidth={2.5}
+                          aria-hidden="true"
+                        />
                         <span className="flex-1 text-left">{item.label}</span>
                         <ChevronDown
                           size={12}
@@ -359,14 +425,21 @@ export const MainLayout = () => {
                             <Link
                               key={to}
                               to={to}
-                              onClick={() => { setMobileOpen(false); setMobileExpanded(null); }}
+                              onClick={() => {
+                                setMobileOpen(false);
+                                setMobileExpanded(null);
+                              }}
                               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all ${
                                 location.pathname === to
                                   ? "bg-white/15 text-white"
                                   : "text-white/55 hover:bg-white/10 hover:text-white"
                               }`}
                             >
-                              <Icon size={13} strokeWidth={2.5} aria-hidden="true" />
+                              <Icon
+                                size={13}
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                              />
                               {label}
                             </Link>
                           ))}
@@ -383,7 +456,9 @@ export const MainLayout = () => {
                     to={item.to!}
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all ${
-                      active ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10 hover:text-white"
+                      active
+                        ? "bg-white/15 text-white"
+                        : "text-white/65 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <item.Icon size={14} strokeWidth={2.5} aria-hidden="true" />
@@ -401,7 +476,9 @@ export const MainLayout = () => {
                     {user.nombre?.[0] ?? "U"}
                   </div>
                   <div className="leading-none">
-                    <p className="text-[12px] font-semibold text-white">{user.nombre} {user.apellidos}</p>
+                    <p className="text-[12px] font-semibold text-white">
+                      {user.nombre} {user.apellidos}
+                    </p>
                     <p className="text-[10px] text-white/50 capitalize">
                       {user.rol?.toLowerCase().replace("_", " ") ?? "usuario"}
                     </p>
@@ -411,17 +488,27 @@ export const MainLayout = () => {
 
               {/* Botón Salir — mobile */}
               <button
-                onClick={() => { handleAuthAction(); setMobileOpen(false); }}
+                onClick={() => {
+                  handleAuthAction();
+                  setMobileOpen(false);
+                }}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold text-white transition-all ${
                   isAuthenticated
                     ? "bg-[#CC1A2E]/80 hover:bg-[#CC1A2E]"
                     : "bg-white/15 hover:bg-white/25"
                 }`}
               >
-                {isAuthenticated
-                  ? <><LogOut size={14} strokeWidth={2.5} aria-hidden="true" /> Cerrar sesión</>
-                  : <><LogIn  size={14} strokeWidth={2.5} aria-hidden="true" /> Iniciar sesión</>
-                }
+                {isAuthenticated ? (
+                  <>
+                    <LogOut size={14} strokeWidth={2.5} aria-hidden="true" />{" "}
+                    Cerrar sesión
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={14} strokeWidth={2.5} aria-hidden="true" />{" "}
+                    Iniciar sesión
+                  </>
+                )}
               </button>
             </div>
           </nav>

@@ -9,7 +9,7 @@ export const TipoCombustibleController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tipos = await TipoCombustibleService.findAll();
-      res.json({ success: true, tipos });
+      res.json({ success: true, data: tipos });
     } catch (error) {
       next(error);
     }
@@ -20,7 +20,7 @@ export const TipoCombustibleController = {
       const tipo = await TipoCombustibleService.findById(
         req.params.id as string,
       );
-      res.json({ success: true, tipo });
+      res.json({ success: true, data: tipo });
     } catch (error) {
       next(error);
     }
@@ -32,7 +32,7 @@ export const TipoCombustibleController = {
       const tipo = await TipoCombustibleService.create(data);
       res
         .status(201)
-        .json({ success: true, message: "Tipo de combustible creado", tipo });
+        .json({ success: true, message: "Tipo de combustible creado", data: tipo });
     } catch (error) {
       next(error);
     }
@@ -48,7 +48,7 @@ export const TipoCombustibleController = {
       res.json({
         success: true,
         message: "Tipo de combustible actualizado",
-        tipo,
+        data: tipo,
       });
     } catch (error) {
       next(error);

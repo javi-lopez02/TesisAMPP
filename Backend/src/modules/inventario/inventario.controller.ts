@@ -13,7 +13,7 @@ export const InventarioController = {
         asambleaId as string,
         tipoCombustibleId as string,
       );
-      res.json({ success: true, inventarios });
+      res.json({ success: true, data: inventarios });
     } catch (error) {
       next(error);
     }
@@ -24,7 +24,7 @@ export const InventarioController = {
       const inventario = await InventarioService.findById(
         req.params.id as string,
       );
-      res.json({ success: true, inventario });
+      res.json({ success: true, data: inventario });
     } catch (error) {
       next(error);
     }
@@ -37,7 +37,7 @@ export const InventarioController = {
       res.status(201).json({
         success: true,
         message: "Inventario creado exitosamente",
-        inventario,
+        data: inventario,
       });
     } catch (error) {
       next(error);
@@ -54,7 +54,7 @@ export const InventarioController = {
       res.json({
         success: true,
         message: "Inventario actualizado exitosamente",
-        inventario,
+        data: inventario,
       });
     } catch (error) {
       next(error);
@@ -90,7 +90,7 @@ export const InventarioController = {
       res.json({
         success: true,
         message: `Saldo actualizado (${tipo})`,
-        resultado,
+        data: resultado,
       });
     } catch (error) {
       next(error);
@@ -110,7 +110,7 @@ export const InventarioController = {
         desde ? new Date(desde as string) : undefined,
         hasta ? new Date(hasta as string) : undefined,
       );
-      res.json({ success: true, movimientos });
+      res.json({ success: true, data: movimientos });
     } catch (error) {
       next(error);
     }

@@ -13,30 +13,12 @@ import {
   Building2,
 } from "lucide-react";
 import type { getConsejo } from "../../types/consejo.types";
-import type { FormState } from "../../pages/CircunscripcionPage";
 import type { getUsuario } from "../../types/usuarios.types";
+import type { FormState } from "../../types/circunscripcion.types";
+import type { FormMode } from "../../types/globalTypes";
+import { inputClass } from "../../helpers/helpers";
+import { generateCodigo } from "./HelpersCircunscripciones";
 
-type FormMode = "crear" | "editar";
-
-const generateCodigo = (nombre: string): string => {
-  const words = nombre.trim().toUpperCase().split(/\s+/);
-  const prefix = words
-    .map((w) => w.slice(0, 3))
-    .join("")
-    .slice(0, 6);
-  const num = String(Math.floor(Math.random() * 900) + 100);
-  return `C-${prefix}-${num}`;
-};
-
-const inputClass = (hasError: boolean) =>
-  `w-full rounded-lg border px-3.5 py-2.5 text-[13px] text-[#0e1f4d] outline-none transition
-   placeholder:text-gray-300
-   dark:bg-black/3 dark:text-gray-500 dark:placeholder:text-white/20
-   ${
-     hasError
-       ? "border-[#F09595] bg-[#FCEBEB] focus:border-[#CC1A2E] dark:bg-[#CC1A2E]/10"
-       : "border-black/[0.10] bg-white focus:border-[#1B3D8F] dark:border-white/10 dark:focus:border-[#85B7EB]"
-   }`;
 
 interface SidePanelProps {
   mode: FormMode;
@@ -262,21 +244,24 @@ export const SidePanel = ({
             onClick={() => onChange({ activo: !form.activo })}
             className={`flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 transition ${
               form.activo
-                ? "border-[#C0DD97] bg-[#EAF3DE]"
+                ? "border-[#C0DD97] bg-[#EAF3DE] dark:border-[#3B6D11]/40 dark:bg-[#3B6D11]/10"
                 : "border-black/8 bg-white dark:border-white/10 dark:bg-white/3"
             }`}
           >
             <span
               className={`text-[13px] font-semibold ${
                 form.activo
-                  ? "text-[#3B6D11]"
+                  ? "text-[#3B6D11] dark:text-[#8BC34A]"
                   : "text-gray-400 dark:text-white/40"
               }`}
             >
               {form.activo ? "Activo" : "Inactivo"}
             </span>
             {form.activo ? (
-              <ToggleRight size={20} className="text-[#3B6D11]" />
+              <ToggleRight
+                size={20}
+                className="text-[#3B6D11] dark:text-[#8BC34A]"
+              />
             ) : (
               <ToggleLeft
                 size={20}

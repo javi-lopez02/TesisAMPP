@@ -27,3 +27,11 @@ export interface updateCdr {
   activo: boolean;
   zonaId: string;
 }
+
+export interface FormState {
+  numero: string;
+  direccion: string;
+  activo: boolean;
+  zonaId: string;
+}
+

@@ -14,27 +14,10 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import type { FormState } from "../../pages/UsuariosPage";
-
-type FormMode = "crear" | "editar";
-
-const inputClass = (hasError: boolean) =>
-  `w-full rounded-lg border px-3.5 py-2.5 text-[13px] text-[#0e1f4d] outline-none transition
-   placeholder:text-gray-300
-   dark:bg-black/3 dark:text-gray-500 dark:placeholder:text-white/20
-   ${
-     hasError
-       ? "border-[#F09595] bg-[#FCEBEB] focus:border-[#CC1A2E] dark:bg-[#CC1A2E]/10"
-       : "border-black/[0.10] bg-white focus:border-[#1B3D8F] dark:border-white/10 dark:focus:border-[#85B7EB]"
-   }`;
-
-const ROLES = [
-  { value: "ADMINISTRADOR", label: "Administrador", desc: "Acceso completo al sistema" },
-  { value: "SUPERVISOR", label: "Supervisor", desc: "Supervisión y auditoría de operaciones" },
-  { value: "PRESIDENTE_CONSEJO", label: "Presidente de Consejo", desc: "Gestión de un consejo popular" },
-  { value: "DELEGADO", label: "Delegado", desc: "Representante de circunscripción" },
-  { value: "CHOFER", label: "Chofer", desc: "Registro de transporte y rutas" },
-] as const;
+import type { FormState } from "../../types/usuarios.types";
+import type { FormMode } from "../../types/globalTypes";
+import { inputClass } from "../../helpers/helpers";
+import { ROLES } from "./HelpersUsers";
 
 interface SidePanelProps {
   mode: FormMode;

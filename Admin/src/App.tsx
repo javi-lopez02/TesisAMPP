@@ -24,6 +24,10 @@ import { useAuthStore } from "./store/authStore";
 import { ZonasPage } from "./pages/ZonasPage";
 import { CdrsPage } from "./pages/CdrPage";
 import { UsuariosPage } from "./pages/UsuariosPage";
+import { TipoCombustiblePage } from "./pages/TipoCombustiblePage";
+// import { InventarioMovimientosPage } from "./pages/InventarioMovimientoPage";
+import { InventarioPage } from "./pages/InventarioPage";
+import { MovimientosCombustiblePage } from "./pages/MovimientosCombustiblePage";
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 const AuthSpinner = () => (
@@ -99,11 +103,21 @@ const router = createBrowserRouter([
           // { path: "rutas",             element: <RutasPage /> },
           { path: "consejos", element: <ConsejosPopularesPage /> },
           {
-            path: "consejos/circunscripciones",
+            path: "circunscripciones",
             element: <CircunscripcionPage />,
           },
-          { path: "consejos/zonas", element: <ZonasPage /> },
-          { path: "consejos/cdrs", element: <CdrsPage /> },
+          { path: "zonas", element: <ZonasPage /> },
+          { path: "cdrs", element: <CdrsPage /> },
+          { path: "combustible/tipo", element: <TipoCombustiblePage /> },
+          { path: "combustible/inventario", element: <InventarioPage /> },
+          // {
+          //   path: "combustible/movimientos",
+          //   element: <InventarioMovimientosPage inventarioId="" />,
+          // },
+          {
+            path: "combustible/movimientos",
+            element: <MovimientosCombustiblePage />,
+          },
 
           // { path: "reportes",          element: <ReportesPage /> },
         ],

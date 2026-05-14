@@ -7,11 +7,11 @@ export const createMovimientoCombustibleSchema = z.object({
   }),
   cantidad: z.coerce
     .number()
-    .refine((val) => val !== 0, { message: "La cantidad no puede ser 0" }),
+    .refine((val) => val > 0, { message: "La cantidad debe ser mayor a 0" }),
   observaciones: z.string().optional(),
   asambleaId: z.string().uuid("ID de Asamblea inválido"),
   tipoCombustibleId: z.string().uuid("ID de Tipo de Combustible inválido"),
-  inventarioCombustibleId: z.string().uuid().optional(), // Opcional si es movimiento registral puro
+  inventarioCombustibleId: z.string().uuid().optional(),
 });
 
 export type CreateMovimientoCombustibleInput = z.infer<

@@ -25,3 +25,10 @@ export interface getConsejo {
   };
   presidente: User;
 }
+
+export interface FormState {
+  nombre: string;
+  codigo: string;
+  activo: boolean;
+  presidenteId: string;
+}
