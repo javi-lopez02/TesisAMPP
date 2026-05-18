@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import type {
   createCircunscripcion,
@@ -12,6 +11,7 @@ import {
   getCircunscripcionRequest,
   updateCircunscripcionRequest,
 } from "../services/circunscripciones.service";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useCircunscripciones = () => {
   const [circunscripciones, setCircunscripciones] = useState<
@@ -48,12 +48,15 @@ export const useCircunscripciones = () => {
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("Consejo creado exitosamente");
+      toastSuccess(
+        "Circunscripcion Creada Exitosamente",
+        `Circunscripción ${res.data.data.nombre} ha sido creada`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -73,12 +76,15 @@ export const useCircunscripciones = () => {
             c.id === id ? { ...c, ...res.data.data } : c,
           );
         });
-        toast.success("Consejo actualizado exitosamente");
+        toastSuccess(
+          "Circunscripcion Actualizada Exitosamente",
+          `Circunscripcion ${res.data.data.nombre} actualizada`,
+        );
         return { success: true, data: res.data.data };
       } catch (err) {
         const messages = handleAxiosError(err);
         setError(messages);
-        toast.error(messages.join(", "));
+        toastError("Fallo en la Actualizacion", "Verifique los datos");
         return { success: false, error: err };
       } finally {
         setLoading(false);
@@ -98,7 +104,7 @@ export const useCircunscripciones = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -147,12 +153,15 @@ export const useCircunscripciones = () => {
         return prev.filter((c) => c.id !== id);
       });
 
-      toast.success("Consejo eliminado exitosamente");
+      toastSuccess(
+        "Circunscripcion Eliminada Exitosamente",
+        "Circunscripcion pasó a estar inactiva",
+      );
       return { success: true, id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo al Borrar", "Verifique que no existan zonas asociadas");
       return { success: false, error: err };
     } finally {
       setLoading(false);

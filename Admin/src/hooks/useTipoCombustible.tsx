@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import type {
   createTipoCombustible,
@@ -12,6 +11,7 @@ import {
   getTipoCombustibleRequest,
   updateTipoCombustibleRequest,
 } from "../services/tipo-combustible.service";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useTipoCombustible = () => {
   const [tipoCombustible, setTipoCombustible] = useState<
@@ -48,12 +48,15 @@ export const useTipoCombustible = () => {
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("Tipo de Combustible creado exitosamente");
+      toastSuccess(
+        "Tipo de Combustible Creado Exitosamente",
+        `Combustible ${res.data.data.nombre} registrado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -73,12 +76,15 @@ export const useTipoCombustible = () => {
             c.id === id ? { ...c, ...res.data.data } : c,
           );
         });
-        toast.success("Tipo de Combustible actualizado exitosamente");
+        toastSuccess(
+          "Tipo de Combustible Actualizado Exitosamente",
+          `Combustible ${res.data.data.nombre} actualizado`,
+        );
         return { success: true, data: res.data.data };
       } catch (err) {
         const messages = handleAxiosError(err);
         setError(messages);
-        toast.error(messages.join(", "));
+        toastError("Fallo en la Actualizacion", "Verifique los datos");
         return { success: false, error: err };
       } finally {
         setLoading(false);
@@ -98,7 +104,7 @@ export const useTipoCombustible = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -147,12 +153,18 @@ export const useTipoCombustible = () => {
         return prev.filter((c) => c.id !== id);
       });
 
-      toast.success("Consejo eliminado exitosamente");
+      toastSuccess(
+        "Tipo de Combustible Eliminado Exitosamente",
+        "Combustible pasó a estar inactivo",
+      );
       return { success: true, id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError(
+        "Fallo al Borrar",
+        "Verifique que no existan inventarios asociadas",
+      );
       return { success: false, error: err };
     } finally {
       setLoading(false);

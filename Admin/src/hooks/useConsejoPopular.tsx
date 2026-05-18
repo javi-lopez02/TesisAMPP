@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import type {
   createConsejo,
   updateConsejo,
@@ -12,9 +11,12 @@ import {
   updateConsejoRequest,
 } from "../services/consejo-popular.service";
 import axios, { AxiosError } from "axios";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useConsejoPopular = () => {
-  const [consejosPopulares, setConsejosPopulares] = useState<getConsejo[] | null>(null);
+  const [consejosPopulares, setConsejosPopulares] = useState<
+    getConsejo[] | null
+  >(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
 
@@ -37,21 +39,24 @@ export const useConsejoPopular = () => {
   const create = useCallback(async (consejo: createConsejo) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const res = await createConsejoRequest(consejo);
-      setConsejosPopulares(prev => {
-        const newData = Array.isArray(res.data.data) 
-          ? res.data.data 
+      setConsejosPopulares((prev) => {
+        const newData = Array.isArray(res.data.data)
+          ? res.data.data
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("Consejo creado exitosamente");
+      toastSuccess(
+        "Consejo Popular Creado Exitosamente",
+        `Consejo Popular ${res.data.data.nombre} creado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -61,19 +66,22 @@ export const useConsejoPopular = () => {
   const update = useCallback(async (consejo: updateConsejo, id: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const res = await updateConsejoRequest(consejo, id);
-      setConsejosPopulares(prev => {
+      setConsejosPopulares((prev) => {
         if (!prev) return [res.data.data];
-        return prev.map(c => c.id === id ? { ...c, ...res.data.data } : c);
+        return prev.map((c) => (c.id === id ? { ...c, ...res.data.data } : c));
       });
-      toast.success("Consejo actualizado exitosamente");
+      toastSuccess(
+        "Consejo Popular Actualizado Exitosamente",
+        `Consejo Popular ${res.data.data.nombre} actualizado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Actualizacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -83,7 +91,7 @@ export const useConsejoPopular = () => {
   const getAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const res = await getConsejoRequest();
       setConsejosPopulares(res.data.data);
@@ -91,61 +99,67 @@ export const useConsejoPopular = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);
     }
   }, []);
 
-//   // 🔹 GET BY ID - Obtiene un consejo específico sin afectar la lista general
-//   const getById = useCallback(async (id: string) => {
-//     setLoading(true);
-//     setError(null);
-    
-//     try {
-//       const res = await getConsejoByIdRequest(id);
-//       const consejo = res.data.data;
-      
-//       // Opcional: si quieres agregarlo a la lista local si no existe
-//       setConsejosPopulares(prev => {
-//         if (!prev) return [consejo];
-//         const exists = prev.some(c => c.id === id);
-//         return exists 
-//           ? prev.map(c => c.id === id ? { ...c, ...consejo } : c)
-//           : [...prev, consejo];
-//       });
-      
-//       return { success: true,  consejo };
-//     } catch (err) {
-//       const messages = handleAxiosError(err);
-//       setError(messages);
-//       toast.error(messages.join(", "));
-//       return { success: false, error: err };
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, []);
+  //   // 🔹 GET BY ID - Obtiene un consejo específico sin afectar la lista general
+  //   const getById = useCallback(async (id: string) => {
+  //     setLoading(true);
+  //     setError(null);
+
+  //     try {
+  //       const res = await getConsejoByIdRequest(id);
+  //       const consejo = res.data.data;
+
+  //       // Opcional: si quieres agregarlo a la lista local si no existe
+  //       setConsejosPopulares(prev => {
+  //         if (!prev) return [consejo];
+  //         const exists = prev.some(c => c.id === id);
+  //         return exists
+  //           ? prev.map(c => c.id === id ? { ...c, ...consejo } : c)
+  //           : [...prev, consejo];
+  //       });
+
+  //       return { success: true,  consejo };
+  //     } catch (err) {
+  //       const messages = handleAxiosError(err);
+  //       setError(messages);
+  //       toast.error(messages.join(", "));
+  //       return { success: false, error: err };
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }, []);
 
   const softDelete = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       await deleteConsejoRequest(id);
-      
+
       // Remover el consejo de la lista local
-      setConsejosPopulares(prev => {
+      setConsejosPopulares((prev) => {
         if (!prev) return null;
-        return prev.filter(c => c.id !== id);
+        return prev.filter((c) => c.id !== id);
       });
-      
-      toast.success("Consejo eliminado exitosamente");
-      return { success: true,  id };
+
+      toastSuccess(
+        "Consejo Popular Eliminado Exitosamente",
+        "Consejo Popular pasó a estar inactivo",
+      );
+      return { success: true, id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError(
+        "Fallo al Borrar",
+        "Verifique que no existan circunscripciones asociadas",
+      );
       return { success: false, error: err };
     } finally {
       setLoading(false);

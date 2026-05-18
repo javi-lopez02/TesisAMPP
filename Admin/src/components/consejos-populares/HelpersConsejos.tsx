@@ -1,9 +1,5 @@
 // src/components/consejos-populares/HelpersConsejos.ts
-import type { FormState, getConsejo } from "../../types/consejo.types";
-
-// ── Constantes ───────────────────────────────────────────────────────────────
-export const CODIGO_CONSEJO_REGEX = /^CP-[A-Z]{2,6}-\d{3}$/;
-export const CODIGO_FORMATO_MSG = "Formato: CP-XXX-000";
+import type { getConsejo } from "../../types/consejo.types";
 
 // ── Filtros ──────────────────────────────────────────────────────────────────
 export interface FiltrosConsejos {
@@ -37,47 +33,6 @@ export const aplicarFiltrosConsejos = (
 
     return matchSearch && matchActivo;
   });
-};
-
-// ── Validación de formulario ─────────────────────────────────────────────────
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Partial<Record<keyof FormState, string>>;
-}
-
-export const validarFormConsejo = (
-  form: FormState,
-  existingConsejos: getConsejo[] | null,
-  editingId?: string | null,
-): ValidationResult => {
-  const errs: Partial<Record<keyof FormState, string>> = {};
-
-  // Nombre: obligatorio
-  if (!form.nombre.trim()) {
-    errs.nombre = "El nombre es obligatorio";
-  }
-
-  // Código: obligatorio y formato válido
-  if (!form.codigo.trim()) {
-    errs.codigo = "El código es obligatorio";
-  } else if (!CODIGO_CONSEJO_REGEX.test(form.codigo)) {
-    errs.codigo = CODIGO_FORMATO_MSG;
-  }
-
-  // Nombre único (excluyendo el registro que se está editando)
-  const duplicado = existingConsejos?.find(
-    (c) =>
-      c.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-      c.id !== editingId,
-  );
-  if (duplicado) {
-    errs.nombre = "Ya existe un consejo con ese nombre";
-  }
-
-  return {
-    isValid: Object.keys(errs).length === 0,
-    errors: errs,
-  };
 };
 
 export const generateCodigo = (nombre: string): string => {

@@ -7,7 +7,6 @@ import {
   Trash2,
   User,
   ChevronRight,
-  AlertTriangle,
   Mail,
   UserCircle2,
   Shield,
@@ -27,6 +26,8 @@ import { Badge } from "../components/globalComponents/Badge";
 import { AssignmentPill } from "../components/usuarios/StatPill";
 import { SidePanel } from "../components/usuarios/SidePanel";
 import type { FormMode } from "../types/globalTypes";
+
+// 🔹 IMPORTAR HELPERS DE FILTRO Y MÉTRICAS
 import {
   ROL_LABELS,
   ROL_COLORS,
@@ -36,25 +37,27 @@ import {
   formatearIniciales,
   aplicarFiltrosUsuarios,
   type FiltrosUsuarios,
-  validarFormUsuario,
-  type ValidationResult,
   calcularMetricasUsuarios,
   type MetricasUsuarios,
   prepararPayloadUsuario,
 } from "../components/usuarios/HelpersUsers";
 
-const FORM_INITIAL: FormState = {
-  correo: "",
-  contrasenia: "",
-  nombre: "",
-  apellidos: "",
-  rol: "DELEGADO",
-  activo: true,
-};
+// 🔹 IMPORTAR VALIDACIONES CON ZOD
+import {
+  validateUsuarioForm,
+  validateUsuarioDuplicate,
+  validatePasswordConditional,
+  resetUsuarioForm,
+  validateEmailFormat,
+  validatePasswordFormat,
+  PASSWORD_MIN_LENGTH,
+} from "../schemas/usuario.validation";
+
+const FORM_INITIAL: FormState = resetUsuarioForm();
 
 // ── UsuariosPage ──────────────────────────────────────────────────────────────
 export const UsuariosPage = () => {
-  const { usuarios, loading, error, create, update, getAll, softDelete } =
+  const { usuarios, loading, create, update, getAll, softDelete } =
     useUsuarios();
 
   const [search, setSearch] = useState("");
@@ -97,16 +100,44 @@ export const UsuariosPage = () => {
     return aplicarFiltrosUsuarios(usuarios, filtros);
   }, [usuarios, filtros]);
 
-  // ── Validación (usando helper) ─────────────────────────────────────────────
+  // ── Validación con Zod + lógica de negocio ─────────────────────────────────
   const validate = useCallback((): boolean => {
-    const result: ValidationResult = validarFormUsuario(
-      form,
-      usuarios,
-      editingId,
+    const zodInput = {
+      correo: form.correo,
+      contrasenia: form.contrasenia,
+      nombre: form.nombre,
+      apellidos: form.apellidos,
+      rol: form.rol,
+      activo: form.activo,
+    };
+    const zodResult = validateUsuarioForm(zodInput, panelMode);
+    
+    if (!zodResult.isValid) {
+      setFormErrors(zodResult.errors);
+      return false;
+    }
+
+    const passwordError = validatePasswordConditional(
+      form.contrasenia,
       panelMode,
     );
-    setFormErrors(result.errors);
-    return result.isValid;
+    if (passwordError) {
+      setFormErrors((prev) => ({ ...prev, contrasenia: passwordError }));
+      return false;
+    }
+
+    const duplicateError = validateUsuarioDuplicate(
+      form.correo,
+      usuarios,
+      editingId,
+    );
+    if (duplicateError) {
+      setFormErrors((prev) => ({ ...prev, correo: duplicateError }));
+      return false;
+    }
+
+    setFormErrors({});
+    return true;
   }, [form, usuarios, editingId, panelMode]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -122,7 +153,7 @@ export const UsuariosPage = () => {
   const handleEditar = useCallback((u: getUsuario) => {
     setForm({
       correo: u.correo,
-      contrasenia: "", // No se muestra la contraseña existente
+      contrasenia: "",
       nombre: u.nombre,
       apellidos: u.apellidos,
       rol: u.rol,
@@ -137,9 +168,9 @@ export const UsuariosPage = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!validate()) return;
+    
     setLoadingSubmit(true);
     try {
-      // 🔹 Usar helper para preparar payload
       const payload = prepararPayloadUsuario(form, panelMode);
 
       if (panelMode === "crear") {
@@ -166,7 +197,6 @@ export const UsuariosPage = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="font-['Sora',sans-serif]">
-      {/* Modal eliminar */}
       {deleteTarget && (
         <DeleteModal
           usuario={deleteTarget}
@@ -204,7 +234,7 @@ export const UsuariosPage = () => {
             </button>
           </div>
 
-          {/* Tarjetas de resumen (opcional, usando helpers) */}
+          {/* Tarjetas de resumen */}
           {!loading && usuarios !== null && usuarios.length > 0 && (
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
@@ -368,157 +398,150 @@ export const UsuariosPage = () => {
             </div>
           )}
 
-          {/* Estado: error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && usuarios !== null && (
-            <div className="overflow-hidden rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              {/* Cabecera */}
-              <div
-                className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
-                style={{
-                  gridTemplateColumns: "1.5fr 1.2fr 1fr 1fr 1fr 80px 40px",
-                }}
-              >
-                <span className="flex items-center gap-1">
-                  <UserCircle2 size={10} /> Usuario
-                </span>
-                <span className="flex items-center gap-1">
-                  <Mail size={10} /> Correo
-                </span>
-                <span>Rol</span>
-                <span className="text-center">Consejo</span>
-                <span className="text-center">Circunscripción</span>
-                <span className="text-center">Estado</span>
-                <span />
-              </div>
-
-              {/* Filas */}
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
-                  <User size={32} strokeWidth={1.5} />
-                  <p className="mt-3 text-[13px] font-semibold">
-                    Sin resultados
-                  </p>
-                  <p className="text-[12px]">
-                    Intenta ajustar los filtros o la búsqueda
-                  </p>
+            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
+              <div className="min-w-225">
+                {/* Cabecera */}
+                <div
+                  className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
+                  style={{
+                    gridTemplateColumns: "1.5fr 1.2fr 1fr 1fr 1fr 80px 40px",
+                  }}
+                >
+                  <span className="flex items-center gap-1">
+                    <UserCircle2 size={10} /> Usuario
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Mail size={10} /> Correo
+                  </span>
+                  <span>Rol</span>
+                  <span className="text-center">Consejo</span>
+                  <span className="text-center">Circunscripción</span>
+                  <span className="text-center">Estado</span>
+                  <span />
                 </div>
-              ) : (
-                filtered.map((u, i) => (
-                  <div
-                    key={u.id}
-                    className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
-                      i < filtered.length - 1
-                        ? "border-b border-black/5 dark:border-white/5"
-                        : ""
-                    } ${editingId === u.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
-                    style={{
-                      gridTemplateColumns: "1.5fr 1.2fr 1fr 1fr 1fr 80px 40px",
-                    }}
-                  >
-                    {/* Usuario: Nombre + Apellidos + Iniciales */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20 text-[11px] font-bold text-[#1B3D8F] dark:text-[#85B7EB] uppercase">
-                        {formatearIniciales(u.nombre, u.apellidos)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-bold text-[#0e1f4d] dark:text-white">
-                          {u.nombre} {u.apellidos}
-                        </p>
-                        <p className="text-[11px] text-gray-400 dark:text-white/30">
-                          Creado: {formatearFechaCorta(u.createdAt)}
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* Correo */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Mail
-                        size={12}
-                        className="shrink-0 text-gray-300 dark:text-white/20"
-                      />
-                      <p className="truncate text-[12px] text-[#0e1f4d] dark:text-white">
-                        {u.correo}
-                      </p>
-                    </div>
-
-                    {/* Rol */}
-                    <div>
-                      <span
-                        className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-semibold ${getRolColor(
-                          u.rol,
-                        )}`}
-                      >
-                        <Shield size={10} className="mr-1" />
-                        {getRolLabel(u.rol)}
-                      </span>
-                    </div>
-
-                    {/* Consejo asignado (solo para PRESIDENTE_CONSEJO) */}
-                    <div className="flex justify-center">
-                      {u.consejoPopularPresidente ? (
-                        <AssignmentPill
-                          value={u.consejoPopularPresidente.nombre}
-                          icon={<Building2 size={10} />}
-                        />
-                      ) : (
-                        <span className="text-[11px] text-gray-300 dark:text-white/20">
-                          —
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Circunscripción asignada (solo para DELEGADO) */}
-                    <div className="flex justify-center">
-                      {u.circunscripcionDelegado ? (
-                        <AssignmentPill
-                          value={u.circunscripcionDelegado.nombre}
-                          icon={<MapPin size={10} />}
-                        />
-                      ) : (
-                        <span className="text-[11px] text-gray-300 dark:text-white/20">
-                          —
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Estado */}
-                    <div className="flex justify-center">
-                      <Badge activo={u.activo} />
-                    </div>
-
-                    {/* Acciones */}
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleEditar(u)}
-                        title="Editar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(u)}
-                        title="Eliminar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <ChevronRight
-                        size={13}
-                        className="text-gray-200 dark:text-white/10"
-                      />
-                    </div>
+                {/* Filas */}
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
+                    <User size={32} strokeWidth={1.5} />
+                    <p className="mt-3 text-[13px] font-semibold">
+                      Sin resultados
+                    </p>
+                    <p className="text-[12px]">
+                      Intenta ajustar los filtros o la búsqueda
+                    </p>
                   </div>
-                ))
-              )}
+                ) : (
+                  filtered.map((u, i) => (
+                    <div
+                      key={u.id}
+                      className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
+                        i < filtered.length - 1
+                          ? "border-b border-black/5 dark:border-white/5"
+                          : ""
+                      } ${editingId === u.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
+                      style={{
+                        gridTemplateColumns: "1.5fr 1.2fr 1fr 1fr 1fr 80px 40px",
+                      }}
+                    >
+                      {/* Usuario: Nombre + Apellidos + Iniciales */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20 text-[11px] font-bold text-[#1B3D8F] dark:text-[#85B7EB] uppercase">
+                          {formatearIniciales(u.nombre, u.apellidos)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-bold text-[#0e1f4d] dark:text-white">
+                            {u.nombre} {u.apellidos}
+                          </p>
+                          <p className="text-[11px] text-gray-400 dark:text-white/30">
+                            Creado: {formatearFechaCorta(u.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Correo */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Mail
+                          size={12}
+                          className="shrink-0 text-gray-300 dark:text-white/20"
+                        />
+                        <p className="truncate text-[12px] text-[#0e1f4d] dark:text-white">
+                          {u.correo}
+                        </p>
+                      </div>
+
+                      {/* Rol */}
+                      <div>
+                        <span
+                          className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-semibold ${getRolColor(
+                            u.rol,
+                          )}`}
+                        >
+                          <Shield size={10} className="mr-1" />
+                          {getRolLabel(u.rol)}
+                        </span>
+                      </div>
+
+                      {/* Consejo asignado */}
+                      <div className="flex justify-center">
+                        {u.consejoPopularPresidente ? (
+                          <AssignmentPill
+                            value={u.consejoPopularPresidente.nombre}
+                            icon={<Building2 size={10} />}
+                          />
+                        ) : (
+                          <span className="text-[11px] text-gray-300 dark:text-white/20">
+                            —
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Circunscripción asignada */}
+                      <div className="flex justify-center">
+                        {u.circunscripcionDelegado ? (
+                          <AssignmentPill
+                            value={u.circunscripcionDelegado.nombre}
+                            icon={<MapPin size={10} />}
+                          />
+                        ) : (
+                          <span className="text-[11px] text-gray-300 dark:text-white/20">
+                            —
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Estado */}
+                      <div className="flex justify-center">
+                        <Badge activo={u.activo} />
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditar(u)}
+                          title="Editar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(u)}
+                          title="Eliminar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <ChevronRight
+                          size={13}
+                          className="text-gray-200 dark:text-white/10"
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
@@ -545,6 +568,11 @@ export const UsuariosPage = () => {
               errors={formErrors}
               showPassword={showPassword}
               onTogglePassword={() => setShowPassword((p) => !p)}
+              helpers={{ 
+                validateEmailFormat, 
+                validatePasswordFormat,
+                PASSWORD_MIN_LENGTH 
+              }}
             />
           </div>
         )}

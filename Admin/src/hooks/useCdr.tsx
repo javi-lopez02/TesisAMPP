@@ -1,6 +1,5 @@
 // src/hooks/useCdrs.ts
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import type { createCdr, updateCdr, getCdrs } from "../types/cdrs.types";
 import {
   createCdrRequest,
@@ -9,6 +8,7 @@ import {
   deleteCdrRequest,
 } from "../services/cdr.service";
 import axios, { AxiosError } from "axios";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useCdr = () => {
   const [cdrs, setCdrs] = useState<getCdrs[] | null>(null);
@@ -39,12 +39,15 @@ export const useCdr = () => {
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("CDR creado exitosamente");
+      toastSuccess(
+        "CDR Creado Exitosamente",
+        `CDR ${res.data.data.nombre} ha sido creado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -60,12 +63,15 @@ export const useCdr = () => {
         if (!prev) return [res.data.data];
         return prev.map((c) => (c.id === id ? { ...c, ...res.data.data } : c));
       });
-      toast.success("CDR actualizado exitosamente");
+      toastSuccess(
+        "CDR Actualizado Exitosamente",
+        `CDR ${res.data.data.nombre} actualizado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Actualizacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -82,7 +88,7 @@ export const useCdr = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -95,12 +101,14 @@ export const useCdr = () => {
     try {
       await deleteCdrRequest(id);
       setCdrs((prev) => (prev ? prev.filter((c) => c.id !== id) : null));
-      toast.success("CDR eliminado exitosamente");
-      return { success: true, data: id };
+toastSuccess(
+        "CDR Eliminado Exitosamente",
+        "CDR pasó a estar inactiva",
+      );      return { success: true, data: id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo al Borrar", "Verifique que no existan rutas asociadas");
       return { success: false, error: err };
     } finally {
       setLoading(false);

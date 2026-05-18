@@ -2,28 +2,30 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Search,
-  AlertTriangle,
   Fuel,
   Filter,
   TrendingDown,
   BarChart3,
   Droplets,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useInventario } from "../hooks/useInventario";
 import { useTipoCombustible } from "../hooks/useTipoCombustible";
 import { InventarioTable } from "../components/inventario/InventarioTable";
-import {
-  pctDisponible,
-  UMBRAL_BAJO,
-  UMBRAL_CRITICO,
-} from "../components/inventario/HelpersInventario";
 import { ResumenCard } from "../components/inventario/ResumeCard";
 import { NivelStockBar } from "../components/inventario/NivelStockBar";
+import {
+  UMBRAL_CRITICO,
+  aplicarFiltrosInventario,
+  type FiltrosInventario,
+  calcularMetricasInventario,
+  type MetricasInventario,
+} from "../components/inventario/HelpersInventario";
 
 // ── InventarioPage ────────────────────────────────────────────────────────────
 export const InventarioPage = () => {
-  const { inventario, loading, error, getAll } = useInventario();
+  const { inventario, loading, getAll } = useInventario();
   const { getAll: getAllTipos } = useTipoCombustible();
 
   const [search, setSearch] = useState("");
@@ -36,54 +38,25 @@ export const InventarioPage = () => {
     getAllTipos();
   }, [getAll, getAllTipos]);
 
-  // ── Métricas ──────────────────────────────────────────────────────────────────
-  const metricas = useMemo(() => {
-    const lista = inventario ?? [];
-    const totalAsignado = lista.reduce((acc, i) => acc + i.cantidadAsignada, 0);
-    const totalDisponible = lista.reduce((acc, i) => acc + i.saldoActual, 0);
-    const totalConsumido = totalAsignado - totalDisponible;
-    const conStockBajo = lista.filter(
-      (i) => pctDisponible(i) < UMBRAL_BAJO,
-    ).length;
-    const totalMovimientos = lista.reduce(
-      (acc, i) => acc + (i._count?.movimientos ?? 0),
-      0,
-    );
-    const pctGlobal =
-      totalAsignado > 0
-        ? Math.round((totalDisponible / totalAsignado) * 100)
-        : 0;
-    return {
-      totalAsignado,
-      totalDisponible,
-      totalConsumido,
-      conStockBajo,
-      totalMovimientos,
-      pctGlobal,
-    };
+  // ── Métricas (usando helper) ───────────────────────────────────────────────
+  const metricas = useMemo((): MetricasInventario => {
+    return calcularMetricasInventario(inventario);
   }, [inventario]);
 
-  // ── Filtrado ──────────────────────────────────────────────────────────────────
+  // ── Filtros (usando helper) ────────────────────────────────────────────────
+  const filtros: FiltrosInventario = useMemo(
+    () => ({
+      search,
+      filterBajo,
+    }),
+    [search, filterBajo],
+  );
+
   const filtered = useMemo(() => {
-    return (inventario ?? []).filter((inv) => {
-      const q = search.toLowerCase();
-      const matchSearch =
-        inv.tipoCombustible.nombre.toLowerCase().includes(q) ||
-        inv.tipoCombustible.codigo?.toLowerCase().includes(q);
+    return aplicarFiltrosInventario(inventario, filtros);
+  }, [inventario, filtros]);
 
-      const pct = pctDisponible(inv);
-      const matchBajo =
-        filterBajo === "todos"
-          ? true
-          : filterBajo === "bajo"
-            ? pct < UMBRAL_BAJO
-            : pct >= UMBRAL_BAJO;
-
-      return matchSearch && matchBajo;
-    });
-  }, [inventario, search, filterBajo]);
-
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="font-['Sora',sans-serif]">
       <div className="flex flex-col lg:flex-row lg:gap-0">
@@ -114,7 +87,7 @@ export const InventarioPage = () => {
             </div>
           </div>
 
-          {/* Tarjetas de resumen + barra niveles — solo cuando hay datos */}
+          {/* Tarjetas de resumen + barra niveles */}
           {!loading && inventario !== null && inventario.length > 0 && (
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <ResumenCard
@@ -205,27 +178,18 @@ export const InventarioPage = () => {
           </div>
 
           {/* Alerta stock crítico */}
-          {!loading &&
-            inventario !== null &&
-            (inventario ?? []).some(
-              (i) => pctDisponible(i) < UMBRAL_CRITICO,
-            ) && (
-              <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#F09595] bg-[#FCEBEB] px-4 py-2.5">
-                <AlertTriangle size={14} className="shrink-0 text-[#CC1A2E]" />
-                <p className="text-[12px] font-medium text-[#791F1F]">
-                  <span className="font-bold">
-                    {
-                      (inventario ?? []).filter(
-                        (i) => pctDisponible(i) < UMBRAL_CRITICO,
-                      ).length
-                    }{" "}
-                    tipo(s)
-                  </span>{" "}
-                  de combustible con nivel crítico (menos del {UMBRAL_CRITICO}%
-                  disponible).
-                </p>
-              </div>
-            )}
+          {!loading && inventario !== null && metricas.conStockCritico > 0 && (
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#F09595] bg-[#FCEBEB] px-4 py-2.5">
+              <AlertTriangle size={14} className="shrink-0 text-[#CC1A2E]" />
+              <p className="text-[12px] font-medium text-[#791F1F]">
+                <span className="font-bold">
+                  {metricas.conStockCritico} tipo(s)
+                </span>{" "}
+                de combustible con nivel crítico (menos del {UMBRAL_CRITICO}%
+                disponible).
+              </p>
+            </div>
+          )}
 
           {/* Estado: cargando */}
           {loading && inventario === null && (
@@ -237,18 +201,13 @@ export const InventarioPage = () => {
             </div>
           )}
 
-          {/* Estado: error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla — sin tocar */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && inventario !== null && (
-            <InventarioTable inventarios={filtered} />
+            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
+              <div className="min-w-180">
+                <InventarioTable inventarios={filtered} />
+              </div>
+            </div>
           )}
 
           {/* Pie */}

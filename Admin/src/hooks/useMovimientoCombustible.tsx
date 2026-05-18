@@ -1,6 +1,5 @@
 // src/hooks/useMovimientoCombustible.ts
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import type {
   createMovimiento,
@@ -10,6 +9,7 @@ import {
   createMovimientoCombustibleRequest,
   getMovimientosRequest,
 } from "../services/movimientos.service";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export interface GetMovimientosParams {
   inventarioId?: string;
@@ -53,12 +53,12 @@ export const useMovimientoCombustible = () => {
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("Movimiento registrado exitosamente");
+      toastSuccess("Movimiento de Combustible Registrado Exitosamente");
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en el Registro", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -75,7 +75,7 @@ export const useMovimientoCombustible = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);

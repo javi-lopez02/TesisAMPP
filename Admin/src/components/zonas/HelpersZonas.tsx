@@ -1,9 +1,5 @@
 // src/components/zonas/HelpersZonas.ts
-import type { FormState, getZonas } from "../../types/zonas.types";
-
-// ── Constantes ───────────────────────────────────────────────────────────────
-export const CODIGO_ZONA_REGEX = /^Z-[A-Z]{2,6}-\d{3}$/;
-export const CODIGO_FORMATO_MSG = "Formato: Z-XXX-000";
+import type { getZonas } from "../../types/zonas.types";
 
 // ── Filtros ──────────────────────────────────────────────────────────────────
 export interface FiltrosZonas {
@@ -38,48 +34,12 @@ export const aplicarFiltrosZonas = (
   });
 };
 
-// ── Validación de formulario ─────────────────────────────────────────────────
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Partial<Record<keyof FormState, string>>;
-}
-
-export const validarFormZona = (
-  form: FormState,
-  existingZonas: getZonas[] | null,
-  editingId?: string | null,
-): ValidationResult => {
-  const errs: Partial<Record<keyof FormState, string>> = {};
-
-  // Nombre: obligatorio
-  if (!form.nombre.trim()) {
-    errs.nombre = "El nombre es obligatorio";
-  }
-
-  // Código: obligatorio y formato válido
-  if (!form.codigo.trim()) {
-    errs.codigo = "El código es obligatorio";
-  } else if (!CODIGO_ZONA_REGEX.test(form.codigo)) {
-    errs.codigo = CODIGO_FORMATO_MSG;
-  }
-
-  // Circunscripción: obligatoria
-  if (!form.circunscripcionId) {
-    errs.circunscripcionId = "Debes seleccionar una circunscripción";
-  }
-
-  // Nombre único (excluyendo el registro que se está editando)
-  const duplicado = existingZonas?.find(
-    (z) =>
-      z.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-      z.id !== editingId,
-  );
-  if (duplicado) {
-    errs.nombre = "Ya existe una zona con ese nombre";
-  }
-
-  return {
-    isValid: Object.keys(errs).length === 0,
-    errors: errs,
-  };
+export const generateCodigo = (nombre: string): string => {
+  const words = nombre.trim().toUpperCase().split(/\s+/);
+  const prefix = words
+    .map((w) => w.slice(0, 3))
+    .join("")
+    .slice(0, 6);
+  const num = String(Math.floor(Math.random() * 900) + 100);
+  return `Z-${prefix}-${num}`;
 };

@@ -1,9 +1,8 @@
 // src/pages/MovimientosCombustiblePage.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus,
   Search,
-  AlertTriangle,
   ArrowDownUp,
   ArrowDownLeft,
   ArrowUpRight,
@@ -25,6 +24,8 @@ import type {
   FormState,
   TipoMovimiento,
 } from "../types/movimiento.types";
+
+// 🔹 IMPORTAR HELPERS DE FILTRO Y MÉTRICAS
 import {
   TIPO_LABELS,
   TIPO_COLORS,
@@ -34,23 +35,22 @@ import {
   type MetricasMovimientos,
   aplicarFiltros,
   type FiltrosMovimientos,
-  validarFormMovimiento,
-  type ValidationResult,
   formatearCantidad,
 } from "../components/movimientos/HelpersMovimientos";
 
-const FORM_INITIAL: FormState = {
-  tipo: "ASIGNACION_INICIAL",
-  cantidad: "",
-  observaciones: "",
-  asambleaId: "",
-  tipoCombustibleId: "",
-  inventarioCombustibleId: "",
-};
+// 🔹 IMPORTAR VALIDACIONES CON ZOD
+import {
+  validateMovimientoForm,
+  validateInventarioExistence,
+  resetMovimientoForm,
+  validateCantidadFormat,
+} from "../schemas/movimiento-combustible.validation";
+
+const FORM_INITIAL: FormState = resetMovimientoForm();
 
 // ── MovimientosCombustiblePage ────────────────────────────────────────────────
 export const MovimientosCombustiblePage = () => {
-  const { movimientos, loading, error, create, getAll } =
+  const { movimientos, loading, create, getAll } =
     useMovimientoCombustible();
   const { inventario: inventarios, getAll: getAllInventarios } =
     useInventario();
@@ -84,10 +84,10 @@ export const MovimientosCombustiblePage = () => {
     getAllInventarios();
   }, [getAll, getAllTipos, getAllAsambleas, getAllInventarios]);
 
+  // ── Info de inventario (para preview en UI) ────────────────────────────────
   useEffect(() => {
     if (!form.asambleaId || !form.tipoCombustibleId) {
       setInventarioInfo((prev) => {
-        // Solo actualizar si es diferente
         if (prev.existe === false && prev.saldoActual === undefined)
           return prev;
         return { existe: false, saldoActual: undefined };
@@ -95,7 +95,6 @@ export const MovimientosCombustiblePage = () => {
       return;
     }
 
-    // Buscar inventario
     const inv = inventarios?.find(
       (i) =>
         i.asamblea.id === form.asambleaId &&
@@ -132,22 +131,48 @@ export const MovimientosCombustiblePage = () => {
     return aplicarFiltros(movimientos, filtros);
   }, [movimientos, filtros]);
 
-  // ── Validación (usando helper) ─────────────────────────────────────────────
-  const validate = (): boolean => {
-    const result: ValidationResult = validarFormMovimiento(form);
-    setFormErrors(result.errors);
-    return result.isValid;
-  };
+  // ── Validación con Zod + lógica de inventario ──────────────────────────────
+  const validate = useCallback((): boolean => {
+    const zodInput = {
+      tipo: form.tipo,
+      cantidad: form.cantidad,
+      observaciones: form.observaciones,
+      asambleaId: form.asambleaId,
+      tipoCombustibleId: form.tipoCombustibleId,
+    };
+    const zodResult = validateMovimientoForm(zodInput);
+
+    if (!zodResult.isValid) {
+      setFormErrors(zodResult.errors);
+      return false;
+    }
+
+    const inventarioError = validateInventarioExistence(
+      form.asambleaId,
+      form.tipoCombustibleId,
+      form.tipo,
+      inventarios,
+    );
+
+    if (inventarioError) {
+      setFormErrors({ tipoCombustibleId: inventarioError });
+      return false;
+    }
+
+    setFormErrors({});
+    return true;
+  }, [form, inventarios]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const handleNuevo = () => {
-    setForm({ ...FORM_INITIAL, tipo: "ASIGNACION_INICIAL" });
+  const handleNuevo = useCallback(() => {
+    setForm(FORM_INITIAL);
     setFormErrors({});
     setPanelOpen(true);
-  };
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) return;
+
     setLoadingSubmit(true);
     try {
       const payload: createMovimiento = {
@@ -163,7 +188,7 @@ export const MovimientosCombustiblePage = () => {
     } finally {
       setLoadingSubmit(false);
     }
-  };
+  }, [validate, form, create]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -345,22 +370,17 @@ export const MovimientosCombustiblePage = () => {
             </div>
           )}
 
-          {/* Estado: error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && movimientos !== null && (
-            <MovimientosTable
-              movimientos={filtered}
-              getTipoLabel={getTipoLabel}
-              getTipoColor={getTipoColor}
-            />
+            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
+              <div className="min-w-225">
+                <MovimientosTable
+                  movimientos={filtered}
+                  getTipoLabel={getTipoLabel}
+                  getTipoColor={getTipoColor}
+                />
+              </div>
+            </div>
           )}
 
           {/* Pie */}
@@ -387,6 +407,7 @@ export const MovimientosCombustiblePage = () => {
               onClose={() => setPanelOpen(false)}
               loading={loadingSubmit}
               errors={formErrors}
+              helpers={{ validateCantidadFormat }}
             />
           </div>
         )}

@@ -28,6 +28,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "../store/appStore";
 import { useAuthStore } from "../store/authStore";
+import { Toaster } from "sonner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface DropdownItem {
@@ -518,6 +519,13 @@ export const MainLayout = () => {
       {/* ── Contenido ───────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <Outlet />
+        <Toaster
+          richColors
+          closeButton
+          theme="system" // o "light" | "dark"
+          expand={false}
+          visibleToasts={3}
+        />
       </main>
     </div>
   );

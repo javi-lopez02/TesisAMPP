@@ -15,26 +15,9 @@ import {
 import type { getCircunscripcion } from "../../types/circunscripcion.types";
 import type { FormState } from "../../types/zonas.types";
 import type { FormMode } from "../../types/globalTypes";
+import { inputClass } from "../../helpers/helpers";
+import { generateCodigo } from "./HelpersZonas";
 
-const generateCodigo = (nombre: string): string => {
-  const words = nombre.trim().toUpperCase().split(/\s+/);
-  const prefix = words
-    .map((w) => w.slice(0, 3))
-    .join("")
-    .slice(0, 6);
-  const num = String(Math.floor(Math.random() * 900) + 100);
-  return `Z-${prefix}-${num}`;
-};
-
-const inputClass = (hasError: boolean) =>
-  `w-full rounded-lg border px-3.5 py-2.5 text-[13px] text-[#0e1f4d] outline-none transition
-   placeholder:text-gray-300
-   dark:bg-black/3 dark:text-gray-500 dark:placeholder:text-white/20
-   ${
-     hasError
-       ? "border-[#F09595] bg-[#FCEBEB] focus:border-[#CC1A2E] dark:bg-[#CC1A2E]/10"
-       : "border-black/[0.10] bg-white focus:border-[#1B3D8F] dark:border-white/10 dark:focus:border-[#85B7EB]"
-   }`;
 const SelectField = ({
   value,
   onChange,
@@ -70,6 +53,10 @@ interface SidePanelProps {
   onChange: (partial: Partial<FormState>) => void;
   onSubmit: () => void;
   onClose: () => void;
+  helpers?: {
+    validateCodigoFormat: (codigo: string) => string | undefined;
+    CODIGO_FORMATO_MSG: string;
+  };
 }
 
 export const SidePanel = ({
@@ -81,6 +68,7 @@ export const SidePanel = ({
   onChange,
   onSubmit,
   onClose,
+  helpers,
 }: SidePanelProps) => {
   const isEditar = mode === "editar";
 
@@ -89,7 +77,7 @@ export const SidePanel = ({
   );
 
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+    <aside className="flex w-full flex-col border-l rounded-2xl border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
@@ -147,12 +135,25 @@ export const SidePanel = ({
           <input
             type="text"
             value={form.codigo}
-            onChange={(e) => onChange({ codigo: e.target.value.toUpperCase() })}
+            onChange={(e) => {
+              const valor = e.target.value.toUpperCase();
+              onChange({ codigo: valor });
+
+              // Validación en tiempo real opcional
+              if (helpers?.validateCodigoFormat && valor) {
+                helpers.validateCodigoFormat(valor);
+                // Mostrar hint debajo del input si hay error de formato
+              }
+            }}
             placeholder="Z-XXX-000"
             className={`${inputClass(!!errors.codigo)} font-mono`}
           />
           {errors.codigo ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.codigo}</p>
+          ) : form.codigo && helpers?.validateCodigoFormat(form.codigo) ? (
+            <p className="mt-1 text-[11px] text-[#BA7517]">
+              {helpers.CODIGO_FORMATO_MSG}
+            </p>
           ) : (
             <p className="mt-1 text-[11px] text-gray-400 dark:text-white/30">
               Generado automáticamente, puedes editarlo

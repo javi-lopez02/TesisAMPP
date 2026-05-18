@@ -19,7 +19,6 @@ import type { FormMode } from "../../types/globalTypes";
 import { inputClass } from "../../helpers/helpers";
 import { generateCodigo } from "./HelpersCircunscripciones";
 
-
 interface SidePanelProps {
   mode: FormMode;
   form: FormState;
@@ -30,6 +29,10 @@ interface SidePanelProps {
   onChange: (partial: Partial<FormState>) => void;
   onSubmit: () => void;
   onClose: () => void;
+  helpers?: {
+    validateCodigoFormat: (codigo: string) => string | undefined;
+    CODIGO_FORMATO_MSG: string;
+  };
 }
 
 export const SidePanel = ({
@@ -42,6 +45,7 @@ export const SidePanel = ({
   onChange,
   onSubmit,
   onClose,
+  helpers,
 }: SidePanelProps) => {
   const isEditar = mode === "editar";
 
@@ -52,7 +56,7 @@ export const SidePanel = ({
   );
 
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+    <aside className="flex w-full flex-col border-l rounded-2xl border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
@@ -110,12 +114,25 @@ export const SidePanel = ({
           <input
             type="text"
             value={form.codigo}
-            onChange={(e) => onChange({ codigo: e.target.value.toUpperCase() })}
+            onChange={(e) => {
+              const valor = e.target.value.toUpperCase();
+              onChange({ codigo: valor });
+
+              // Validación en tiempo real opcional
+              if (helpers?.validateCodigoFormat && valor) {
+                helpers.validateCodigoFormat(valor);
+                // Mostrar hint debajo del input si hay error de formato
+              }
+            }}
             placeholder="C-XXX-000"
             className={`${inputClass(!!errors.codigo)} font-mono`}
           />
           {errors.codigo ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.codigo}</p>
+          ) : form.codigo && helpers?.validateCodigoFormat(form.codigo) ? (
+            <p className="mt-1 text-[11px] text-[#BA7517]">
+              {helpers.CODIGO_FORMATO_MSG}
+            </p>
           ) : (
             <p className="mt-1 text-[11px] text-gray-400 dark:text-white/30">
               Generado automáticamente, puedes editarlo

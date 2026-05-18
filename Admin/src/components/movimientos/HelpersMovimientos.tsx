@@ -1,5 +1,4 @@
 import type {
-  FormState,
   getMovimientoCombustible,
   TipoMovimiento,
 } from "../../types/movimiento.types";
@@ -29,7 +28,7 @@ export const CREATION_TIPOS: {
   },
   {
     value: "ASIGNACION_SOLICITUD",
-    label: "Soliicitud",
+    label: "Solicitud",
     desc: "Solicitud de asignacion",
   },
   {
@@ -139,60 +138,22 @@ export const aplicarFiltros = (
   });
 };
 
-// ── Validación de formulario ─────────────────────────────────────────────────
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Partial<Record<keyof FormState, string>>;
-}
-
-export const validarFormMovimiento = (form: FormState): ValidationResult => {
-  const errs: Partial<Record<keyof FormState, string>> = {};
-
-  // Cantidad: obligatoria y mayor a 0
-  if (!form.cantidad || Number(form.cantidad) <= 0) {
-    errs.cantidad = "La cantidad debe ser mayor a 0";
-  }
-
-  // Tipo de combustible: obligatorio
-  if (!form.tipoCombustibleId) {
-    errs.tipoCombustibleId = "Selecciona un tipo de combustible";
-  }
-
-  // Asamblea: obligatoria
-  if (!form.asambleaId) {
-    errs.asambleaId = "Selecciona una asamblea";
-  }
-
-  // Tipo de movimiento: validación contextual
-  if (form.tipo === "ASIGNACION_INICIAL") {
-    // Este tipo puede crear inventario, no requiere validación adicional aquí
-  } else {
-    // Para otros tipos, el inventario debería existir (validación backend también)
-    // Opcional: agregar advertencia en UI si no hay inventario previo
-  }
-
-  return {
-    isValid: Object.keys(errs).length === 0,
-    errors: errs,
-  };
-};
-
 export const formatearCantidad = (cantidad: number, decimales = 2): string => {
   return `${cantidad.toLocaleString("es-CU", { minimumFractionDigits: decimales, maximumFractionDigits: decimales })} L`;
 };
 
-export const calcularImpactoSaldo = (
-  saldoActual: number,
-  cantidad: number,
-  tipo: TipoMovimiento,
-): { nuevoSaldo: number; signo: "+" | "-"; color: string } => {
-  const esEntrada = !TIPOS_SALIDA.includes(tipo) || tipo === "DEVOLUCION" || tipo === "AJUSTE";
-  const delta = esEntrada ? cantidad : -cantidad;
-  const nuevoSaldo = saldoActual + delta;
+// export const calcularImpactoSaldo = (
+//   saldoActual: number,
+//   cantidad: number,
+//   tipo: TipoMovimiento,
+// ): { nuevoSaldo: number; signo: "+" | "-"; color: string } => {
+//   const esEntrada = !TIPOS_SALIDA.includes(tipo) || tipo === "DEVOLUCION" || tipo === "AJUSTE";
+//   const delta = esEntrada ? cantidad : -cantidad;
+//   const nuevoSaldo = saldoActual + delta;
   
-  return {
-    nuevoSaldo,
-    signo: delta >= 0 ? "+" : "-",
-    color: delta >= 0 ? "text-[#3B6D11]" : "text-[#CC1A2E]",
-  };
-};
+//   return {
+//     nuevoSaldo,
+//     signo: delta >= 0 ? "+" : "-",
+//     color: delta >= 0 ? "text-[#3B6D11]" : "text-[#CC1A2E]",
+//   };
+// };

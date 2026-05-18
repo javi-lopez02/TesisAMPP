@@ -27,6 +27,7 @@ export const SidePanel = memo(
     onChange,
     onSubmit,
     onClose,
+    helpers,
   }: {
     mode: FormMode;
     form: FormState;
@@ -35,11 +36,17 @@ export const SidePanel = memo(
     onChange: (p: Partial<FormState>) => void;
     onSubmit: () => void;
     onClose: () => void;
+    helpers?: {
+      validateCodigoFormat: (codigo: string) => string | undefined;
+      validatePrecioFormat: (precio: string) => string | undefined;
+      CODIGO_FORMATO_MSG: string;
+      PRECIO_FORMATO_MSG: string;
+    };
   }) => {
     const isEditar = mode === "editar";
 
     return (
-      <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+      <aside className="flex w-full flex-col border-l rounded-2xl border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
           <div className="flex items-center gap-2.5">
@@ -97,14 +104,25 @@ export const SidePanel = memo(
             <input
               type="text"
               value={form.codigo}
-              onChange={(e) =>
-                onChange({ codigo: e.target.value.toUpperCase() })
-              }
+              onChange={(e) => {
+                const valor = e.target.value.toUpperCase();
+                onChange({ codigo: valor });
+
+                // Validación en tiempo real opcional
+                if (helpers?.validateCodigoFormat && valor) {
+                  helpers.validateCodigoFormat(valor);
+                  // Mostrar hint debajo del input si hay error de formato
+                }
+              }}
               placeholder="Ej: DIE"
               className={`${inputClass(!!errors.codigo)} font-mono`}
             />
             {errors.codigo ? (
               <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.codigo}</p>
+            ) : form.codigo && helpers?.validateCodigoFormat(form.codigo) ? (
+              <p className="mt-1 text-[11px] text-[#BA7517]">
+                {helpers.CODIGO_FORMATO_MSG}
+              </p>
             ) : (
               <p className="mt-1 text-[11px] text-gray-400 dark:text-white/30">
                 Generado automáticamente, puedes editarlo
@@ -126,16 +144,29 @@ export const SidePanel = memo(
                 min="0"
                 step="0.01"
                 value={form.precioPorLitro}
-                onChange={(e) => onChange({ precioPorLitro: e.target.value })}
+                onChange={(e) => {
+                  onChange({ precioPorLitro: e.target.value });
+
+                  // Validación en tiempo real opcional
+                  if (helpers?.validatePrecioFormat && e.target.value) {
+                    helpers.validatePrecioFormat(e.target.value);
+                    // Mostrar hint debajo del input si hay error de formato
+                  }
+                }}
                 placeholder="0.00"
                 className={`${inputClass(!!errors.precioPorLitro)} pl-7`}
               />
             </div>
-            {errors.precioPorLitro && (
+            {errors.precioPorLitro ? (
               <p className="mt-1 text-[11px] text-[#CC1A2E]">
                 {errors.precioPorLitro}
               </p>
-            )}
+            ) : form.precioPorLitro &&
+              helpers?.validatePrecioFormat(form.precioPorLitro) ? (
+              <p className="mt-1 text-[11px] text-[#BA7517]">
+                {helpers.PRECIO_FORMATO_MSG}
+              </p>
+            ) : null}
           </div>
 
           {/* Toggle Activo/Inactivo */}

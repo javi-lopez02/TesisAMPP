@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import type { createZona, getZonas, updateZona } from "../types/zonas.types";
 import {
@@ -8,6 +7,7 @@ import {
   getZonaRequest,
   updateZonaRequest,
 } from "../services/zonas.service";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useZonas = () => {
   const [zonas, setZonas] = useState<getZonas[] | null>(null);
@@ -42,12 +42,15 @@ export const useZonas = () => {
           : [res.data.data];
         return prev ? [...prev, ...newData] : newData;
       });
-      toast.success("Consejo creado exitosamente");
+      toastSuccess(
+        "Zona Creada Exitosamente",
+        `Zona ${res.data.data.nombre} ha sido creada`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -64,12 +67,15 @@ export const useZonas = () => {
         if (!prev) return [res.data.data];
         return prev.map((c) => (c.id === id ? { ...c, ...res.data.data } : c));
       });
-      toast.success("Zona actualizada exitosamente");
+      toastSuccess(
+        "Zona Actualizada Exitosamente",
+        `Zona ${res.data.data.nombre} actualizada`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Actualizacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -87,7 +93,7 @@ export const useZonas = () => {
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Carga", "Pronto recibirá atención");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -136,12 +142,12 @@ export const useZonas = () => {
         return prev.filter((c) => c.id !== id);
       });
 
-      toast.success("Consejo eliminado exitosamente");
+      toastSuccess("Zona Eliminada Exitosamente", "Zona pasó a estar inactiva");
       return { success: true, id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo al Borrar", "Verifique que no existan cdrs asociados");
       return { success: false, error: err };
     } finally {
       setLoading(false);

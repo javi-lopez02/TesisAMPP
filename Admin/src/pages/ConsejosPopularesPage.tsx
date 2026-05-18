@@ -7,7 +7,6 @@ import {
   Trash2,
   Building2,
   ChevronRight,
-  AlertTriangle,
 } from "lucide-react";
 import { StatPill } from "../components/globalComponents/StatPill";
 import { Badge } from "../components/globalComponents/Badge";
@@ -18,32 +17,26 @@ import type { FormState, getConsejo } from "../types/consejo.types";
 import { useUsuarios } from "../hooks/useUsuario";
 import type { FormMode } from "../types/globalTypes";
 
-// 🔹 IMPORTAR HELPERS (solo filtro y validación)
+// 🔹 IMPORTAR HELPERS DE FILTRO
 import {
   aplicarFiltrosConsejos,
   type FiltrosConsejos,
-  validarFormConsejo,
-  type ValidationResult,
 } from "../components/consejos-populares/HelpersConsejos";
 
-const FORM_INITIAL: FormState = {
-  nombre: "",
-  codigo: "",
-  activo: true,
-  presidenteId: "",
-};
+import {
+  CODIGO_FORMATO_MSG,
+  validateConsejoForm,
+  validateConsejoDuplicate,
+  resetConsejoForm,
+  validateCodigoFormat,
+} from "../schemas/consejo.validation";
+
+const FORM_INITIAL: FormState = resetConsejoForm();
 
 // ── ConsejosPopularesPage ─────────────────────────────────────────────────────
 export const ConsejosPopularesPage = () => {
-  const {
-    consejosPopulares,
-    loading,
-    error,
-    create,
-    update,
-    getAll,
-    softDelete,
-  } = useConsejoPopular();
+  const { consejosPopulares, loading, create, update, getAll, softDelete } =
+    useConsejoPopular();
 
   const { usuarios: presidentes, getAll: getAllUsuarios } = useUsuarios();
 
@@ -80,16 +73,29 @@ export const ConsejosPopularesPage = () => {
     return aplicarFiltrosConsejos(consejosPopulares, filtros);
   }, [consejosPopulares, filtros]);
 
-  // ── Validación (usando helper) ─────────────────────────────────────────────
+  // ── Validación con Zod + lógica de duplicados ──────────────────────────────
   const validate = useCallback((): boolean => {
-    const result: ValidationResult = validarFormConsejo(
-      form,
+    const zodResult = validateConsejoForm(form, panelMode);
+
+    if (!zodResult.isValid) {
+      setFormErrors(zodResult.errors);
+      return false;
+    }
+
+    const duplicateError = validateConsejoDuplicate(
+      form.nombre,
       consejosPopulares,
       editingId,
     );
-    setFormErrors(result.errors);
-    return result.isValid;
-  }, [form, consejosPopulares, editingId]);
+
+    if (duplicateError) {
+      setFormErrors({ nombre: duplicateError });
+      return false;
+    }
+
+    setFormErrors({});
+    return true;
+  }, [form, consejosPopulares, editingId, panelMode]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleNuevo = () => {
@@ -115,6 +121,7 @@ export const ConsejosPopularesPage = () => {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+
     setLoadingSubmit(true);
     try {
       const payload = {
@@ -146,7 +153,7 @@ export const ConsejosPopularesPage = () => {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="font-['Sora',sans-serif]">
       {deleteTarget && (
@@ -229,141 +236,134 @@ export const ConsejosPopularesPage = () => {
             </div>
           )}
 
-          {/* Estado: error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-[12px] text-center">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && consejosPopulares !== null && (
-            <div className="overflow-hidden rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              {/* Cabecera */}
-              <div
-                className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
-                style={{
-                  gridTemplateColumns: "1fr 180px 80px 80px 100px 40px",
-                }}
-              >
-                <span>Nombre / Código</span>
-                <span>Presidente</span>
-                <span className="text-center">Circ.</span>
-                <span className="text-center">Sol.</span>
-                <span className="text-center">Estado</span>
-                <span />
-              </div>
-
-              {/* Filas */}
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
-                  <Building2 size={32} strokeWidth={1.5} />
-                  <p className="mt-3 text-[13px] font-semibold">
-                    Sin resultados
-                  </p>
-                  <p className="text-[12px]">
-                    Intenta ajustar el filtro o la búsqueda
-                  </p>
+            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
+              <div className="min-w-180">
+                {/* Cabecera */}
+                <div
+                  className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
+                  style={{
+                    gridTemplateColumns: "1fr 180px 80px 80px 100px 40px",
+                  }}
+                >
+                  <span>Nombre / Código</span>
+                  <span>Presidente</span>
+                  <span className="text-center">Circ.</span>
+                  <span className="text-center">Sol.</span>
+                  <span className="text-center">Estado</span>
+                  <span />
                 </div>
-              ) : (
-                filtered.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
-                      i < filtered.length - 1
-                        ? "border-b border-black/5 dark:border-white/5"
-                        : ""
-                    } ${editingId === c.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
-                    style={{
-                      gridTemplateColumns: "1fr 180px 80px 80px 100px 40px",
-                    }}
-                  >
-                    {/* Nombre + Código */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
-                        <Building2
-                          size={15}
-                          className="text-[#1B3D8F] dark:text-[#85B7EB]"
+
+                {/* Filas */}
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
+                    <Building2 size={32} strokeWidth={1.5} />
+                    <p className="mt-3 text-[13px] font-semibold">
+                      Sin resultados
+                    </p>
+                    <p className="text-[12px]">
+                      Intenta ajustar el filtro o la búsqueda
+                    </p>
+                  </div>
+                ) : (
+                  filtered.map((c, i) => (
+                    <div
+                      key={c.id}
+                      className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
+                        i < filtered.length - 1
+                          ? "border-b border-black/5 dark:border-white/5"
+                          : ""
+                      } ${editingId === c.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
+                      style={{
+                        gridTemplateColumns: "1fr 180px 80px 80px 100px 40px",
+                      }}
+                    >
+                      {/* Nombre + Código */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
+                          <Building2
+                            size={15}
+                            className="text-[#1B3D8F] dark:text-[#85B7EB]"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-bold text-[#0e1f4d] dark:text-white">
+                            {c.nombre}
+                          </p>
+                          <p className="font-mono text-[11px] text-gray-400 dark:text-white/30">
+                            {c.codigo}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Presidente */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        {c.presidente ? (
+                          <>
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1B3D8F] text-[10px] font-bold text-white uppercase">
+                              {c.presidente.nombre[0]}
+                              {c.presidente.apellidos[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-[12px] font-semibold text-[#0e1f4d] dark:text-white">
+                                {c.presidente.nombre} {c.presidente.apellidos}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[11px] italic text-gray-300 dark:text-white/20">
+                            Sin asignar
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Circunscripciones */}
+                      <div className="flex justify-center">
+                        <StatPill
+                          value={c._count?.circunscripciones ?? 0}
+                          label="Circ."
                         />
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-bold text-[#0e1f4d] dark:text-white">
-                          {c.nombre}
-                        </p>
-                        <p className="font-mono text-[11px] text-gray-400 dark:text-white/30">
-                          {c.codigo}
-                        </p>
+
+                      {/* Solicitudes */}
+                      <div className="flex justify-center">
+                        <StatPill
+                          value={c._count?.solicituds ?? 0}
+                          label="Sol."
+                        />
+                      </div>
+
+                      {/* Estado */}
+                      <div className="flex justify-center">
+                        <Badge activo={c.activo} />
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditar(c)}
+                          title="Editar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          title="Eliminar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <ChevronRight
+                          size={13}
+                          className="text-gray-200 dark:text-white/10"
+                        />
                       </div>
                     </div>
-
-                    {/* Presidente */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      {c.presidente ? (
-                        <>
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1B3D8F] text-[10px] font-bold text-white uppercase">
-                            {c.presidente.nombre[0]}
-                            {c.presidente.apellidos[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[12px] font-semibold text-[#0e1f4d] dark:text-white">
-                              {c.presidente.nombre} {c.presidente.apellidos}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-[11px] italic text-gray-300 dark:text-white/20">
-                          Sin asignar
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Circunscripciones */}
-                    <div className="flex justify-center">
-                      <StatPill
-                        value={c._count?.circunscripciones ?? 0}
-                        label="Circ."
-                      />
-                    </div>
-
-                    {/* Solicitudes */}
-                    <div className="flex justify-center">
-                      <StatPill
-                        value={c._count?.solicituds ?? 0}
-                        label="Sol."
-                      />
-                    </div>
-
-                    {/* Estado */}
-                    <div className="flex justify-center">
-                      <Badge activo={c.activo} />
-                    </div>
-
-                    {/* Acciones */}
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleEditar(c)}
-                        title="Editar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        title="Eliminar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <ChevronRight
-                        size={13}
-                        className="text-gray-200 dark:text-white/10"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           )}
 
@@ -390,6 +390,7 @@ export const ConsejosPopularesPage = () => {
               onClose={() => setPanelOpen(false)}
               loading={loadingSubmit}
               errors={formErrors}
+              helpers={{ validateCodigoFormat, CODIGO_FORMATO_MSG }}
             />
           </div>
         )}

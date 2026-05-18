@@ -24,6 +24,9 @@ interface SidePanelProps {
   onChange: (partial: Partial<FormState>) => void;
   onSubmit: () => void;
   onClose: () => void;
+  helpers?: {
+    validateCantidadFormat: (cantidad: string) => string | undefined;
+  };
 }
 
 export const SidePanel = ({
@@ -36,9 +39,10 @@ export const SidePanel = ({
   onChange,
   onSubmit,
   onClose,
+  helpers,
 }: SidePanelProps) => {
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+    <aside className="flex w-full flex-col border-l rounded-2xl border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
@@ -178,13 +182,26 @@ export const SidePanel = ({
             min="0"
             step="0.01"
             value={form.cantidad}
-            onChange={(e) => onChange({ cantidad: e.target.value })}
+            onChange={(e) => {
+              onChange({ cantidad: e.target.value });
+
+              // Validación en tiempo real opcional
+              if (helpers?.validateCantidadFormat && e.target.value) {
+                helpers.validateCantidadFormat(e.target.value);
+                // Mostrar hint debajo del input si hay error de formato
+              }
+            }}
             placeholder="Ej: 250.50"
             className={inputClass(!!errors.cantidad)}
           />
-          {errors.cantidad && (
+          {errors.cantidad ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.cantidad}</p>
-          )}
+          ) : form.cantidad &&
+            helpers?.validateCantidadFormat(form.cantidad) ? (
+            <p className="mt-1 text-[11px] text-[#BA7517]">
+              {helpers.validateCantidadFormat(form.cantidad)}
+            </p>
+          ) : null}
         </div>
 
         {/* Observaciones */}

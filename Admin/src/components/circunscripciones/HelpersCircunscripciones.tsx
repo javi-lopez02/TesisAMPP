@@ -1,12 +1,5 @@
 // src/components/circunscripciones/HelpersCircunscripciones.ts
-import type {
-  FormState,
-  getCircunscripcion,
-} from "../../types/circunscripcion.types";
-
-// ── Constantes ───────────────────────────────────────────────────────────────
-export const CODIGO_CIRCUNSCRIPCION_REGEX = /^C-[A-Z]{2,6}-\d{3}$/;
-export const CODIGO_FORMATO_MSG = "Formato: C-XXX-000";
+import type { getCircunscripcion } from "../../types/circunscripcion.types";
 
 // ── Filtros ──────────────────────────────────────────────────────────────────
 export interface FiltrosCircunscripciones {
@@ -41,52 +34,6 @@ export const aplicarFiltrosCircunscripciones = (
 
     return matchSearch && matchActivo;
   });
-};
-
-// ── Validación de formulario ─────────────────────────────────────────────────
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Partial<Record<keyof FormState, string>>;
-}
-
-export const validarFormCircunscripcion = (
-  form: FormState,
-  existingCircunscripciones: getCircunscripcion[] | null,
-  editingId?: string | null,
-): ValidationResult => {
-  const errs: Partial<Record<keyof FormState, string>> = {};
-
-  // Nombre: obligatorio
-  if (!form.nombre.trim()) {
-    errs.nombre = "El nombre es obligatorio";
-  }
-
-  // Código: obligatorio y formato válido
-  if (!form.codigo.trim()) {
-    errs.codigo = "El código es obligatorio";
-  } else if (!CODIGO_CIRCUNSCRIPCION_REGEX.test(form.codigo)) {
-    errs.codigo = CODIGO_FORMATO_MSG;
-  }
-
-  // Consejo Popular: obligatorio
-  if (!form.consejoPopularId) {
-    errs.consejoPopularId = "Debes seleccionar un consejo popular";
-  }
-
-  // Nombre único (excluyendo el registro que se está editando)
-  const duplicado = existingCircunscripciones?.find(
-    (c) =>
-      c.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
-      c.id !== editingId,
-  );
-  if (duplicado) {
-    errs.nombre = "Ya existe una circunscripción con ese nombre";
-  }
-
-  return {
-    isValid: Object.keys(errs).length === 0,
-    errors: errs,
-  };
 };
 
 export const generateCodigo = (nombre: string): string => {

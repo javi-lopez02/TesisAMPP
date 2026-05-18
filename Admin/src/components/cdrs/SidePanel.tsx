@@ -25,6 +25,10 @@ interface SidePanelProps {
   onChange: (partial: Partial<FormState>) => void;
   onSubmit: () => void;
   onClose: () => void;
+  onValidateField?: (
+    field: keyof FormState,
+    value: string,
+  ) => string | undefined;
 }
 
 export const SidePanel = ({
@@ -36,12 +40,13 @@ export const SidePanel = ({
   onChange,
   onSubmit,
   onClose,
+  onValidateField,
 }: SidePanelProps) => {
   const isEditar = mode === "editar";
   const zonaSeleccionada = zonas?.find((z) => z.id === form.zonaId);
 
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+    <aside className="flex w-full flex-col rounded-2xl border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
@@ -77,7 +82,14 @@ export const SidePanel = ({
             type="number"
             min="1"
             value={form.numero}
-            onChange={(e) => onChange({ numero: e.target.value })}
+            onChange={(e) => {
+              onChange({ numero: e.target.value });
+              // Validación en tiempo real opcional
+              if (onValidateField) {
+                onValidateField("numero", e.target.value);
+                // Mostrar error inline si existe
+              }
+            }}
             placeholder="Ej: 15"
             className={inputClass(!!errors.numero)}
           />
@@ -95,7 +107,14 @@ export const SidePanel = ({
           <input
             type="text"
             value={form.direccion}
-            onChange={(e) => onChange({ direccion: e.target.value })}
+            onChange={(e) => {
+              onChange({ direccion: e.target.value });
+              // Validación en tiempo real opcional
+              if (onValidateField) {
+                onValidateField("direccion", e.target.value);
+                // Mostrar error inline si existe
+              }
+            }}
             placeholder="Ej: Calle 10 #23-45"
             className={inputClass(!!errors.direccion)}
           />

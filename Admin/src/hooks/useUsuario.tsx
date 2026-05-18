@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import type {
   createUsuario,
@@ -12,6 +11,7 @@ import {
   getUsuariosRequest,
   updateUsuarioRequest,
 } from "../services/usuario.service";
+import { toastError, toastSuccess } from "../components/globalComponents/Toast";
 
 export const useUsuarios = () => {
   const [usuarios, setUsuarios] = useState<getUsuario[] | null>(null);
@@ -46,12 +46,15 @@ export const useUsuarios = () => {
         const newUsuario = res.data.data;
         return prev ? [...prev, newUsuario] : [newUsuario];
       });
-      toast.success("Usuario creado exitosamente");
+      toastSuccess(
+        "Usuario Creado Exitosamente",
+        `Usuario ${res.data.data.nombre} registrado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Creacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -69,12 +72,15 @@ export const useUsuarios = () => {
         if (!prev) return [res.data.data];
         return prev.map((u) => (u.id === id ? { ...u, ...res.data.data } : u));
       });
-      toast.success("Usuario actualizado exitosamente");
+      toastSuccess(
+        "Usuario Actualizado Exitosamente",
+        `Usuario ${res.data.data.nombre} actualizado`,
+      );
       return { success: true, data: res.data.data };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError("Fallo en la Actualizacion", "Verifique los datos");
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -94,7 +100,7 @@ export const useUsuarios = () => {
       } catch (err) {
         const messages = handleAxiosError(err);
         setError(messages);
-        toast.error(messages.join(", "));
+        toastError("Fallo en la Carga", "Pronto recibirá atención");
         return { success: false, error: err };
       } finally {
         setLoading(false);
@@ -146,12 +152,18 @@ export const useUsuarios = () => {
         return prev.filter((u) => u.id !== id);
       });
 
-      toast.success("Usuario desactivado exitosamente");
+      toastSuccess(
+        "Usuario Eliminado Exitosamente",
+        "Usuario pasó a estar inactivo",
+      );
       return { success: true, id };
     } catch (err) {
       const messages = handleAxiosError(err);
       setError(messages);
-      toast.error(messages.join(", "));
+      toastError(
+        "Fallo al Borrar",
+        "Verifique que no existan solicitudes asociadas",
+      );
       return { success: false, error: err };
     } finally {
       setLoading(false);

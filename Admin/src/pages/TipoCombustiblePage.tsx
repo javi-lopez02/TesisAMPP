@@ -1,6 +1,6 @@
 // src/pages/TipoCombustiblePage.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Search, Fuel, AlertTriangle } from "lucide-react";
+import { Plus, Search, Fuel } from "lucide-react";
 import { useTipoCombustible } from "../hooks/useTipoCombustible";
 import type {
   FormState,
@@ -10,28 +10,31 @@ import { DeleteModal } from "../components/tipo-combustible/ModalDelete";
 import { TipoRow } from "../components/tipo-combustible/TipoRow";
 import { SidePanel } from "../components/tipo-combustible/SidePanel";
 import type { FormMode } from "../types/globalTypes";
+
 import {
   aplicarFiltrosTipo,
   type FiltrosTipoCombustible,
-  validarFormTipoCombustible,
-  type ValidationResult,
   calcularMetricasTipo,
   type MetricasTipoCombustible,
   formatearPrecio,
 } from "../components/tipo-combustible/HelpersTipoComb";
 
-const FORM_INITIAL: FormState = {
-  nombre: "",
-  codigo: "",
-  precioPorLitro: "",
-  activo: true,
-};
+import {
+  validateTipoCombustibleForm,
+  validateTipoCombustibleDuplicate,
+  resetTipoCombustibleForm,
+  validateCodigoFormat,
+  validatePrecioFormat,
+  PRECIO_FORMATO_MSG,
+  CODIGO_FORMATO_MSG,
+} from "../schemas/tipo-combustible.validation";
+
+const FORM_INITIAL: FormState = resetTipoCombustibleForm();
 
 export const TipoCombustiblePage = () => {
   const {
     tipoCombustible,
     loading,
-    error,
     create,
     update,
     getAll,
@@ -64,25 +67,45 @@ export const TipoCombustiblePage = () => {
   }, [tipoCombustible]);
 
   // ── Filtros (usando helper) ────────────────────────────────────────────────
-  const filtros: FiltrosTipoCombustible = useMemo(() => ({
-    search,
-    filterActivo,
-  }), [search, filterActivo]);
+  const filtros: FiltrosTipoCombustible = useMemo(
+    () => ({
+      search,
+      filterActivo,
+    }),
+    [search, filterActivo],
+  );
 
   const filtered = useMemo(() => {
     return aplicarFiltrosTipo(tipoCombustible, filtros);
   }, [tipoCombustible, filtros]);
 
-  // ── Validación (usando helper) ─────────────────────────────────────────────
+  // ── Validación con Zod + lógica de duplicados ──────────────────────────────
   const validate = useCallback((): boolean => {
-    const result: ValidationResult = validarFormTipoCombustible(
-      form,
+    const zodInput = {
+      nombre: form.nombre,
+      codigo: form.codigo,
+      precioPorLitro: form.precioPorLitro,
+    };
+    const zodResult = validateTipoCombustibleForm(zodInput, panelMode);
+
+    if (!zodResult.isValid) {
+      setFormErrors(zodResult.errors);
+      return false;
+    }
+
+    const duplicateError = validateTipoCombustibleDuplicate(
+      form.nombre,
       tipoCombustible,
       editingId,
-      panelMode,
     );
-    setFormErrors(result.errors);
-    return result.isValid;
+
+    if (duplicateError) {
+      setFormErrors({ nombre: duplicateError });
+      return false;
+    }
+
+    setFormErrors({});
+    return true;
   }, [form, tipoCombustible, editingId, panelMode]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -109,6 +132,7 @@ export const TipoCombustiblePage = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!validate()) return;
+
     setLoadingSubmit(true);
     try {
       const payload = {
@@ -192,48 +216,53 @@ export const TipoCombustiblePage = () => {
             </button>
           </div>
 
-          {/* Tarjetas de resumen (usando helpers) */}
-          {!loading && tipoCombustible !== null && tipoCombustible.length > 0 && (
-            <div className="mb-4 grid grid-cols-3 gap-3">
-              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
-                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#1B3D8F]" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
-                  Tipos registrados
-                </p>
-                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
-                  {metricas.total}
-                </p>
-                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
-                  {metricas.activos} activos
-                </p>
+          {/* Tarjetas de resumen */}
+          {!loading &&
+            tipoCombustible !== null &&
+            tipoCombustible.length > 0 && (
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                  <div className="absolute inset-x-0 top-0 h-0.75 bg-[#1B3D8F]" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                    Tipos registrados
+                  </p>
+                  <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                    {metricas.total}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                    {metricas.activos} activos
+                  </p>
+                </div>
+                <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                  <div className="absolute inset-x-0 top-0 h-0.75 bg-[#3B6D11]" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                    Vehículos asignados
+                  </p>
+                  <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                    {metricas.totalVehiculos}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                    en todos los tipos
+                  </p>
+                </div>
+                <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
+                  <div className="absolute inset-x-0 top-0 h-0.75 bg-[#BA7517]" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+                    Precio promedio
+                  </p>
+                  <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
+                    {formatearPrecio(metricas.precioPromedio)}
+                    <span className="text-[13px] font-medium text-gray-400">
+                      {" "}
+                      /L
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
+                    {metricas.totalSolicitudes} solicitudes totales
+                  </p>
+                </div>
               </div>
-              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
-                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#3B6D11]" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
-                  Vehículos asignados
-                </p>
-                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
-                  {metricas.totalVehiculos}
-                </p>
-                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
-                  en todos los tipos
-                </p>
-              </div>
-              <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#0e1a35]">
-                <div className="absolute inset-x-0 top-0 h-0.75 bg-[#BA7517]" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
-                  Precio promedio
-                </p>
-                <p className="mt-1 text-[24px] font-bold leading-none text-[#0e1f4d] dark:text-white">
-                  {formatearPrecio(metricas.precioPromedio)}
-                  <span className="text-[13px] font-medium text-gray-400"> /L</span>
-                </p>
-                <p className="mt-1 text-[11px] text-gray-400 dark:text-white/40">
-                  {metricas.totalSolicitudes} solicitudes totales
-                </p>
-              </div>
-            </div>
-          )}
+            )}
 
           {/* Filtros */}
           <div className="mb-4 flex flex-wrap gap-2">
@@ -277,43 +306,38 @@ export const TipoCombustiblePage = () => {
             </div>
           )}
 
-          {/* Error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && tipoCombustible !== null && (
             <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              {/* Cabecera */}
-              <div
-                className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
-                style={{
-                  gridTemplateColumns: "1fr 100px 120px 80px 80px 80px 100px 40px",
-                  minWidth: "800px",
-                }}
-              >
-                <span>Nombre / Código</span>
-                <span className="text-center">Precio / L</span>
-                <span className="text-center">Vehículos</span>
-                <span className="text-center">Sol.</span>
-                <span className="text-center">Asig.</span>
-                <span className="text-center">Mov.</span>
-                <span className="text-center">Estado</span>
-                <span />
-              </div>
+              <div className="min-w-200">
+                {/* Cabecera */}
+                <div
+                  className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
+                  style={{
+                    gridTemplateColumns:
+                      "1fr 100px 120px 80px 80px 80px 100px 40px",
+                  }}
+                >
+                  <span>Nombre / Código</span>
+                  <span className="text-center">Precio / L</span>
+                  <span className="text-center">Vehículos</span>
+                  <span className="text-center">Sol.</span>
+                  <span className="text-center">Asig.</span>
+                  <span className="text-center">Mov.</span>
+                  <span className="text-center">Estado</span>
+                  <span />
+                </div>
 
-              {/* Filas */}
-              <div style={{ minWidth: "800px" }}>
+                {/* Filas */}
                 {filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
                     <Fuel size={32} strokeWidth={1.5} />
-                    <p className="mt-3 text-[13px] font-semibold">Sin resultados</p>
-                    <p className="text-[12px]">Intenta ajustar el filtro o la búsqueda</p>
+                    <p className="mt-3 text-[13px] font-semibold">
+                      Sin resultados
+                    </p>
+                    <p className="text-[12px]">
+                      Intenta ajustar el filtro o la búsqueda
+                    </p>
                   </div>
                 ) : (
                   filtered.map((t, i) => (
@@ -334,7 +358,8 @@ export const TipoCombustiblePage = () => {
           {/* Pie */}
           {!loading && tipoCombustible !== null && filtered.length > 0 && (
             <p className="mt-3 text-right text-[11px] text-gray-300 dark:text-white/20">
-              Mostrando {filtered.length} de {(tipoCombustible ?? []).length} tipos de combustible
+              Mostrando {filtered.length} de {(tipoCombustible ?? []).length}{" "}
+              tipos de combustible
             </p>
           )}
         </div>
@@ -350,6 +375,12 @@ export const TipoCombustiblePage = () => {
               onChange={handleChange}
               onSubmit={handleSubmit}
               onClose={() => setPanelOpen(false)}
+              helpers={{
+                validateCodigoFormat,
+                validatePrecioFormat,
+                CODIGO_FORMATO_MSG,
+                PRECIO_FORMATO_MSG,
+              }}
             />
           </div>
         )}

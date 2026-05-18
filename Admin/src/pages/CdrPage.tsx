@@ -7,7 +7,6 @@ import {
   Trash2,
   MapPin,
   ChevronRight,
-  AlertTriangle,
   Hash,
   Home,
 } from "lucide-react";
@@ -24,25 +23,29 @@ import { StatPill } from "../components/globalComponents/StatPill";
 import { SidePanel } from "../components/cdrs/SidePanel";
 import { Badge } from "../components/globalComponents/Badge";
 import type { FormMode } from "../types/globalTypes";
-
-// 🔹 IMPORTAR HELPERS (solo filtro y validación)
 import {
   aplicarFiltrosCdrs,
   type FiltrosCdrs,
-  validarFormCdr,
-  type ValidationResult,
 } from "../components/cdrs/HelpersCdr";
+import {
+  resetCdrForm,
+  validateCdrDuplicate,
+  validateCdrForm,
+  type CdrFormInput,
+} from "../schemas/cdr.validation";
 
-const FORM_INITIAL: FormState = {
-  numero: "",
-  direccion: "",
-  activo: true,
-  zonaId: "",
-};
+const formStateToZod = (form: FormState): CdrFormInput => ({
+  numero: form.numero,
+  direccion: form.direccion,
+  zonaId: form.zonaId,
+  activo: form.activo,
+});
+
+const FORM_INITIAL: FormState = resetCdrForm();
 
 // ── CdrsPage ─────────────────────────────────────────────────────────────────
 export const CdrsPage = () => {
-  const { cdrs, loading, error, create, update, getAll, softDelete } = useCdr();
+  const { cdrs, loading, create, update, getAll, softDelete } = useCdr();
   const { zonas, getAll: getAllZonas } = useZonas();
 
   const [search, setSearch] = useState("");
@@ -78,14 +81,35 @@ export const CdrsPage = () => {
     return aplicarFiltrosCdrs(cdrs, filtros);
   }, [cdrs, filtros]);
 
-  // ── Validación (usando helper) ─────────────────────────────────────────────
+  // ── Validación con Zod + lógica de duplicados ──────────────────────────────
   const validate = useCallback((): boolean => {
-    const result: ValidationResult = validarFormCdr(form, cdrs, editingId);
-    setFormErrors(result.errors);
-    return result.isValid;
-  }, [form, cdrs, editingId]);
+    const zodInput = formStateToZod(form);
+    const zodResult = validateCdrForm(zodInput, panelMode);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
+    if (!zodResult.isValid) {
+      setFormErrors(
+        zodResult.errors as Partial<Record<keyof FormState, string>>,
+      );
+      return false;
+    }
+
+    const duplicateError = validateCdrDuplicate(
+      form.numero,
+      form.zonaId,
+      cdrs,
+      editingId,
+    );
+
+    if (duplicateError) {
+      setFormErrors({ numero: duplicateError });
+      return false;
+    }
+
+    setFormErrors({});
+    return true;
+  }, [form, cdrs, editingId, panelMode]);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleNuevo = () => {
     setForm(FORM_INITIAL);
     setFormErrors({});
@@ -109,6 +133,7 @@ export const CdrsPage = () => {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+
     setLoadingSubmit(true);
     try {
       const payload: createCdr | updateCdr = {
@@ -119,10 +144,11 @@ export const CdrsPage = () => {
       };
 
       if (panelMode === "crear") {
-        await create(payload);
+        await create(payload as createCdr);
       } else if (editingId) {
-        await update(payload, editingId);
+        await update(payload as updateCdr, editingId);
       }
+
       setPanelOpen(false);
       setForm(FORM_INITIAL);
     } finally {
@@ -139,10 +165,9 @@ export const CdrsPage = () => {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="font-['Sora',sans-serif]">
-      {/* Modal eliminar */}
       {deleteTarget && (
         <DeleteModal
           cdr={deleteTarget}
@@ -221,146 +246,139 @@ export const CdrsPage = () => {
             </div>
           )}
 
-          {/* Estado: error */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
+          {/* Tabla - AHORA RESPONSIVE */}
           {!loading && cdrs !== null && (
-            <div className="overflow-hidden rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              {/* Cabecera */}
-              <div
-                className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
-                style={{
-                  gridTemplateColumns: "100px 1fr 180px 80px 100px 40px",
-                }}
-              >
-                <span className="flex items-center gap-1">
-                  <Hash size={10} /> Número
-                </span>
-                <span>Dirección</span>
-                <span>Zona</span>
-                <span className="text-center">Rutas</span>
-                <span className="text-center">Estado</span>
-                <span />
-              </div>
-
-              {/* Filas */}
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
-                  <MapPin size={32} strokeWidth={1.5} />
-                  <p className="mt-3 text-[13px] font-semibold">
-                    Sin resultados
-                  </p>
-                  <p className="text-[12px]">
-                    Intenta ajustar el filtro o la búsqueda
-                  </p>
+            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
+              <div className="min-w-180">
+                {/* Cabecera */}
+                <div
+                  className="grid items-center border-b border-black/6 bg-[#f8f9fc] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:border-white/6 dark:bg-white/3 dark:text-white/30"
+                  style={{
+                    gridTemplateColumns: "100px 1fr 180px 80px 100px 40px",
+                  }}
+                >
+                  <span className="flex items-center gap-1">
+                    <Hash size={10} /> Número
+                  </span>
+                  <span>Dirección</span>
+                  <span>Zona</span>
+                  <span className="text-center">Rutas</span>
+                  <span className="text-center">Estado</span>
+                  <span />
                 </div>
-              ) : (
-                filtered.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
-                      i < filtered.length - 1
-                        ? "border-b border-black/5 dark:border-white/5"
-                        : ""
-                    } ${editingId === c.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
-                    style={{
-                      gridTemplateColumns: "100px 1fr 180px 80px 100px 40px",
-                    }}
-                  >
-                    {/* Número */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
-                        <Hash
+
+                {/* Filas */}
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
+                    <MapPin size={32} strokeWidth={1.5} />
+                    <p className="mt-3 text-[13px] font-semibold">
+                      Sin resultados
+                    </p>
+                    <p className="text-[12px]">
+                      Intenta ajustar el filtro o la búsqueda
+                    </p>
+                  </div>
+                ) : (
+                  filtered.map((c, i) => (
+                    <div
+                      key={c.id}
+                      className={`grid items-center px-5 py-3.5 transition hover:bg-[#f8f9fc] dark:hover:bg-white/3 ${
+                        i < filtered.length - 1
+                          ? "border-b border-black/5 dark:border-white/5"
+                          : ""
+                      } ${editingId === c.id && panelOpen ? "bg-[#EAF3DE]/40 dark:bg-[#1B3D8F]/10" : ""}`}
+                      style={{
+                        gridTemplateColumns: "100px 1fr 180px 80px 100px 40px",
+                      }}
+                    >
+                      {/* Número */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
+                          <Hash
+                            size={12}
+                            className="text-[#1B3D8F] dark:text-[#85B7EB]"
+                          />
+                        </div>
+                        <span className="font-mono text-[13px] font-bold text-[#0e1f4d] dark:text-white">
+                          {c.numero}
+                        </span>
+                      </div>
+
+                      {/* Dirección */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Home
                           size={12}
-                          className="text-[#1B3D8F] dark:text-[#85B7EB]"
+                          className="shrink-0 text-gray-300 dark:text-white/20"
+                        />
+                        <p className="truncate text-[13px] text-[#0e1f4d] dark:text-white">
+                          {c.direccion}
+                        </p>
+                      </div>
+
+                      {/* Zona */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        {c.zona ? (
+                          <>
+                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
+                              <MapPin
+                                size={9}
+                                className="text-[#1B3D8F] dark:text-[#85B7EB]"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-[12px] font-semibold text-[#0e1f4d] dark:text-white">
+                                {c.zona.nombre}
+                              </p>
+                              <p className="font-mono text-[10px] text-gray-400 dark:text-white/30">
+                                {c.zona.codigo}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[11px] italic text-gray-300 dark:text-white/20">
+                            Sin zona
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Rutas */}
+                      <div className="flex justify-center">
+                        <StatPill
+                          value={c._count?.puntoRutas ?? 0}
+                          label="Rut."
                         />
                       </div>
-                      <span className="font-mono text-[13px] font-bold text-[#0e1f4d] dark:text-white">
-                        {c.numero}
-                      </span>
-                    </div>
 
-                    {/* Dirección */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Home
-                        size={12}
-                        className="shrink-0 text-gray-300 dark:text-white/20"
-                      />
-                      <p className="truncate text-[13px] text-[#0e1f4d] dark:text-white">
-                        {c.direccion}
-                      </p>
-                    </div>
+                      {/* Estado */}
+                      <div className="flex justify-center">
+                        <Badge activo={c.activo} />
+                      </div>
 
-                    {/* Zona */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      {c.zona ? (
-                        <>
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1B3D8F]/10 dark:bg-[#1B3D8F]/20">
-                            <MapPin
-                              size={9}
-                              className="text-[#1B3D8F] dark:text-[#85B7EB]"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[12px] font-semibold text-[#0e1f4d] dark:text-white">
-                              {c.zona.nombre}
-                            </p>
-                            <p className="font-mono text-[10px] text-gray-400 dark:text-white/30">
-                              {c.zona.codigo}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-[11px] italic text-gray-300 dark:text-white/20">
-                          Sin zona
-                        </span>
-                      )}
+                      {/* Acciones */}
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditar(c)}
+                          title="Editar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          title="Eliminar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <ChevronRight
+                          size={13}
+                          className="text-gray-200 dark:text-white/10"
+                        />
+                      </div>
                     </div>
-
-                    {/* Rutas */}
-                    <div className="flex justify-center">
-                      <StatPill
-                        value={c._count?.puntoRutas ?? 0}
-                        label="Rut."
-                      />
-                    </div>
-
-                    {/* Estado */}
-                    <div className="flex justify-center">
-                      <Badge activo={c.activo} />
-                    </div>
-
-                    {/* Acciones */}
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleEditar(c)}
-                        title="Editar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#E6F1FB] hover:text-[#1B3D8F] dark:text-white/20 dark:hover:bg-[#1B3D8F]/20 dark:hover:text-[#85B7EB]"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        title="Eliminar"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 transition hover:bg-[#FCEBEB] hover:text-[#CC1A2E] dark:text-white/20 dark:hover:bg-[#CC1A2E]/20 dark:hover:text-[#F09595]"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <ChevronRight
-                        size={13}
-                        className="text-gray-200 dark:text-white/10"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           )}
 

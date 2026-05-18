@@ -29,6 +29,11 @@ interface SidePanelProps {
   onSubmit: () => void;
   onClose: () => void;
   onTogglePassword: () => void;
+  helpers?: {
+    validateEmailFormat: (email: string) => string | undefined;
+    validatePasswordFormat: (password: string) => string | undefined;
+    PASSWORD_MIN_LENGTH: number;
+  };
 }
 
 export const SidePanel = ({
@@ -41,11 +46,12 @@ export const SidePanel = ({
   onSubmit,
   onClose,
   onTogglePassword,
+  helpers,
 }: SidePanelProps) => {
   const isEditar = mode === "editar";
 
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-96 lg:shrink-0">
+    <aside className="flex w-full flex-col border-l rounded-2xl border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-96 lg:shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
@@ -92,7 +98,8 @@ export const SidePanel = ({
         {/* Apellidos */}
         <div>
           <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">
-            <User size={11} /> Apellidos <span className="text-[#CC1A2E]">*</span>
+            <User size={11} /> Apellidos{" "}
+            <span className="text-[#CC1A2E]">*</span>
           </label>
           <input
             type="text"
@@ -102,7 +109,9 @@ export const SidePanel = ({
             className={inputClass(!!errors.apellidos)}
           />
           {errors.apellidos && (
-            <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.apellidos}</p>
+            <p className="mt-1 text-[11px] text-[#CC1A2E]">
+              {errors.apellidos}
+            </p>
           )}
         </div>
 
@@ -114,13 +123,25 @@ export const SidePanel = ({
           <input
             type="email"
             value={form.correo}
-            onChange={(e) => onChange({ correo: e.target.value })}
+            onChange={(e) => {
+              onChange({ correo: e.target.value });
+
+              // Validación en tiempo real opcional
+              if (helpers?.validateEmailFormat && e.target.value) {
+                helpers.validateEmailFormat(e.target.value);
+                // Mostrar hint debajo del input si hay error de formato
+              }
+            }}
             placeholder="usuario@ejemplo.com"
             className={inputClass(!!errors.correo)}
           />
-          {errors.correo && (
+          {errors.correo ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">{errors.correo}</p>
-          )}
+          ) : form.correo && helpers?.validateEmailFormat(form.correo) ? (
+            <p className="mt-1 text-[11px] text-[#BA7517]">
+              {helpers.validateEmailFormat(form.correo)}
+            </p>
+          ) : null}
         </div>
 
         {/* Contraseña */}
@@ -138,9 +159,17 @@ export const SidePanel = ({
             <input
               type={showPassword ? "text" : "password"}
               value={form.contrasenia}
-              onChange={(e) => onChange({ contrasenia: e.target.value })}
-              placeholder={isEditar ? "••••••••" : "Mínimo 6 caracteres"}
-              className={`${inputClass(!!errors.contrasenia)} pr-9`}
+              onChange={(e) => {
+                onChange({ contrasenia: e.target.value });
+
+                // Validación en tiempo real opcional
+                if (helpers?.validatePasswordFormat && e.target.value) {
+                  helpers.validatePasswordFormat(e.target.value);
+                  // Mostrar hint debajo del input si hay error de formato
+                }
+              }}
+              placeholder="••••••••"
+              className={inputClass(!!errors.contrasenia)}
             />
             <button
               type="button"
@@ -151,9 +180,22 @@ export const SidePanel = ({
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
-          {errors.contrasenia && (
+          {errors.contrasenia ? (
             <p className="mt-1 text-[11px] text-[#CC1A2E]">
               {errors.contrasenia}
+            </p>
+          ) : form.contrasenia &&
+            helpers?.validatePasswordFormat(form.contrasenia) ? (
+            <p className="mt-1 text-[11px] text-[#BA7517]">
+              {helpers.validatePasswordFormat(form.contrasenia)}
+            </p>
+          ) : mode === "crear" ? (
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-white/30">
+              Mínimo {helpers?.PASSWORD_MIN_LENGTH ?? 8} caracteres
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-white/30">
+              Dejar vacío para mantener la contraseña actual
             </p>
           )}
           {isEditar && !form.contrasenia && (
