@@ -28,6 +28,7 @@ import { TipoCombustiblePage } from "./pages/TipoCombustiblePage";
 // import { InventarioMovimientosPage } from "./pages/InventarioMovimientoPage";
 import { InventarioPage } from "./pages/InventarioPage";
 import { MovimientosCombustiblePage } from "./pages/MovimientosCombustiblePage";
+import { VehiculosPage } from "./pages/VehiculoPage";
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 const AuthSpinner = () => (
@@ -99,7 +100,7 @@ const router = createBrowserRouter([
           { path: "usuarios", element: <UsuariosPage /> },
           // { path: "solicitudes",       element: <SolicitudesPage /> },
           // { path: "tanques",           element: <TanquesPage /> },
-          // { path: "vehiculos",         element: <VehiculosPage /> },
+          { path: "vehiculos",         element: <VehiculosPage /> },
           // { path: "rutas",             element: <RutasPage /> },
           { path: "consejos", element: <ConsejosPopularesPage /> },
           {

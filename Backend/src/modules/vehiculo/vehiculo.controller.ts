@@ -6,7 +6,7 @@ export const VehiculoController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const vehiculos = await VehiculoService.findAll();
-      res.json({ success: true, vehiculos });
+      res.json({ success: true, data: vehiculos });
     } catch (error) {
       next(error);
     }
@@ -15,7 +15,7 @@ export const VehiculoController = {
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const vehiculo = await VehiculoService.findById(req.params.id as string);
-      res.json({ success: true, vehiculo });
+      res.json({ success: true, data: vehiculo });
     } catch (error) {
       next(error);
     }
@@ -27,7 +27,7 @@ export const VehiculoController = {
       const vehiculo = await VehiculoService.create(data);
       res
         .status(201)
-        .json({ success: true, message: "Vehículo creado", vehiculo });
+        .json({ success: true, message: "Vehículo creado", data: vehiculo });
     } catch (error) {
       next(error);
     }
@@ -40,7 +40,7 @@ export const VehiculoController = {
         req.params.id as string,
         data,
       );
-      res.json({ success: true, message: "Vehículo actualizado", vehiculo });
+      res.json({ success: true, message: "Vehículo actualizado", data: vehiculo });
     } catch (error) {
       next(error);
     }

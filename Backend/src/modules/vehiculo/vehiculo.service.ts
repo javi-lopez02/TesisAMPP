@@ -29,7 +29,13 @@ export const VehiculoService = {
 
   async create(data: CreateVehiculoInput) {
     try {
-      return await prisma.vehiculo.create({ data });
+      return await prisma.vehiculo.create({
+        data,
+        include: {
+          tipoCombustible: { select: { id: true, nombre: true } },
+          chofer: { select: { id: true, nombre: true, apellidos: true } },
+        },
+      });
     } catch (error: any) {
       if (error.code === "P2002")
         throw new Error("La placa ya está registrada");
@@ -43,7 +49,11 @@ export const VehiculoService = {
     try {
       return await prisma.vehiculo.update({
         where: { id, activo: true },
-        data: data, 
+        data: data,
+        include: {
+          tipoCombustible: { select: { id: true, nombre: true } },
+          chofer: { select: { id: true, nombre: true, apellidos: true } },
+        },
       });
     } catch (error: any) {
       if (error.code === "P2002") throw new Error("La placa ya está en uso");
@@ -59,7 +69,7 @@ export const VehiculoService = {
     try {
       return await prisma.vehiculo.update({
         where: { id, activo: true },
-        data: { activo: false }, 
+        data: { activo: false },
       });
     } catch (error: any) {
       if (error.code === "P2025")
