@@ -21,6 +21,9 @@ import { rutaRoutes } from "./modules/ruta/ruta.routes.js";
 import { puntoRutaRoutes } from "./modules/punto-ruta/punto-ruta.routes.js";
 import { asambleaRoutes } from "./modules/ampp/ampp.routes.js";
 import { usuarioRoutes } from "./modules/usuario/usuario.routes.js";
+import { reporteConsumoRoutes } from "./modules/reporte-consumo/reporte-consumo.routes.js";
+import { solicitudRoutes } from "./modules/sollicitud/solicitud.routes.js";
+import { asignacionRoutes } from "./modules/asignacion/asignacion.routes.js";
 
 dotenv.config();
 const port = 4000;
@@ -59,6 +62,10 @@ app.use("/api/puntos-ruta", puntoRutaRoutes);
 app.use("/api/vehiculo", vehiculoRoutes);
 app.use("/api/mantenimiento", mantenimientoRoutes);
 app.use("/api/tipo-combustible", tipoCombustibleRoutes);
+app.use("/api/reporte-consumo", reporteConsumoRoutes);
+
+app.use("/api/solicitudes", solicitudRoutes);
+app.use("/api/asignaciones", asignacionRoutes);
 
 app.use("/api/asamblea", asambleaRoutes);
 app.use("/api/movimiento-combustible", movimientoCombustibleRoutes);

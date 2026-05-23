@@ -7,7 +7,7 @@ import {
 
 export const MantenimientoService = {
   async findAll(vehiculoId?: string) {
-    const where: any = { activo: true };
+    const where: any = {};
     if (vehiculoId) where.vehiculoId = vehiculoId;
 
     const mantenimientos = await prisma.mantenimiento.findMany({
@@ -129,12 +129,12 @@ export const MantenimientoService = {
     }
   },
 
-  async softDelete(id: string) {
-    return await prisma.mantenimiento.update({
-      where: { id },
-      data: { activo: false },
-    });
-  },
+  // async softDelete(id: string) {
+  //   return await prisma.mantenimiento.update({
+  //     where: { id },
+  //     data: { activo: false },
+  //   });
+  // },
 
   async findByVehiculo(vehiculoId: string) {
     const mantenimientos = await prisma.mantenimiento.findMany({

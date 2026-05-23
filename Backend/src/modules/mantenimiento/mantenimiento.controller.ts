@@ -12,7 +12,7 @@ export const MantenimientoController = {
       const mantenimientos = await MantenimientoService.findAll(
         vehiculoId as string,
       );
-      res.json({ success: true, mantenimientos });
+      res.json({ success: true, data: mantenimientos });
     } catch (error) {
       next(error);
     }
@@ -23,7 +23,7 @@ export const MantenimientoController = {
       const mantenimiento = await MantenimientoService.findById(
         req.params.id as string,
       );
-      res.json({ success: true, mantenimiento });
+      res.json({ success: true, data: mantenimiento });
     } catch (error) {
       next(error);
     }
@@ -38,7 +38,7 @@ export const MantenimientoController = {
         .json({
           success: true,
           message: "Mantenimiento registrado",
-          mantenimiento,
+          data: mantenimiento,
         });
     } catch (error) {
       next(error);
@@ -55,31 +55,31 @@ export const MantenimientoController = {
       res.json({
         success: true,
         message: "Mantenimiento actualizado",
-        mantenimiento,
+        data: mantenimiento,
       });
     } catch (error) {
       next(error);
     }
   },
 
-  softDelete: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await MantenimientoService.softDelete(req.params.id as string);
-      res.json({
-        success: true,
-        message: "Mantenimiento eliminado lógicamente",
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+  // softDelete: async (req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     await MantenimientoService.softDelete(req.params.id as string);
+  //     res.json({
+  //       success: true,
+  //       message: "Mantenimiento eliminado lógicamente",
+  //     });
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // },
 
   findByVehiculo: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const mantenimientos = await MantenimientoService.findByVehiculo(
         req.params.vehiculoId as string,
       );
-      res.json({ success: true, mantenimientos });
+      res.json({ success: true, data: mantenimientos });
     } catch (error) {
       next(error);
     }

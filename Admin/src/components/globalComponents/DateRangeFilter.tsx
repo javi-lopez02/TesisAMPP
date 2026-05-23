@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Calendar, X, Check, ChevronDown, AlertCircle } from "lucide-react";
 
 interface DateRangeFilterProps {
-  onApply:           (desde: string | undefined, hasta: string | undefined) => void;
-  onClear:           () => void;
-  initialDesde?:     string;
-  initialHasta?:     string;
+  onApply: (desde: string | undefined, hasta: string | undefined) => void;
+  onClear: () => void;
+  initialDesde?: string;
+  initialHasta?: string;
   placeholderDesde?: string;
   placeholderHasta?: string;
-  disabled?:         boolean;
+  disabled?: boolean;
 }
 
 export const DateRangeFilter = ({
@@ -20,16 +20,19 @@ export const DateRangeFilter = ({
   placeholderHasta = "Fecha final",
   disabled = false,
 }: DateRangeFilterProps) => {
-  const [desde,  setDesde]  = useState<string>(initialDesde ?? "");
-  const [hasta,  setHasta]  = useState<string>(initialHasta ?? "");
-  const [error,  setError]  = useState<string>("");
+  const [desde, setDesde] = useState<string>(initialDesde ?? "");
+  const [hasta, setHasta] = useState<string>(initialHasta ?? "");
+  const [error, setError] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      )
         setIsOpen(false);
     };
     document.addEventListener("mousedown", handler);
@@ -37,7 +40,10 @@ export const DateRangeFilter = ({
   }, []);
 
   const validateDates = (): boolean => {
-    if (!desde && !hasta) { setError(""); return true; }
+    if (!desde && !hasta) {
+      setError("");
+      return true;
+    }
     if (desde && hasta && new Date(desde) > new Date(hasta)) {
       setError("La fecha inicial no puede ser mayor que la final");
       return false;
@@ -49,8 +55,12 @@ export const DateRangeFilter = ({
   const handleApply = () => {
     if (!validateDates()) return;
 
-    const desdeISO = desde ? new Date(`${desde}T00:00:00`).toISOString() : undefined;
-    const hastaISO = hasta ? new Date(`${hasta}T23:59:59`).toISOString()  : undefined;
+    const desdeISO = desde
+      ? new Date(`${desde}T00:00:00`).toISOString()
+      : undefined;
+    const hastaISO = hasta
+      ? new Date(`${hasta}T23:59:59`).toISOString()
+      : undefined;
 
     onApply(desdeISO, hastaISO);
     setIsOpen(false);
@@ -65,7 +75,7 @@ export const DateRangeFilter = ({
   };
 
   const handleQuickSelect = (days: number) => {
-    const end   = new Date();
+    const end = new Date();
     const start = new Date();
     if (days > 0) start.setDate(end.getDate() - days);
 
@@ -78,7 +88,6 @@ export const DateRangeFilter = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-
       {/* Botón principal */}
       <button
         onClick={() => !disabled && setIsOpen((v) => !v)}
@@ -86,7 +95,7 @@ export const DateRangeFilter = ({
         className={`flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
           disabled
             ? "cursor-not-allowed border-black/5 bg-gray-50 text-gray-300 dark:border-white/5 dark:bg-white/5 dark:text-white/20"
-            : "border-black/[0.08] bg-white text-[#0e1f4d] hover:border-[#1B3D8F] hover:bg-[#f8f9fc] dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:hover:border-[#85B7EB] dark:hover:bg-white/[0.05]"
+            : "border-black/8 bg-white text-[#0e1f4d] hover:border-[#1B3D8F] hover:bg-[#f8f9fc] dark:border-white/10 dark:bg-white/3 dark:text-white dark:hover:border-[#85B7EB] dark:hover:bg-white/5"
         } ${isOpen ? "border-[#1B3D8F] ring-2 ring-[#1B3D8F]/20 dark:border-[#85B7EB] dark:ring-[#85B7EB]/20" : ""}`}
       >
         <Calendar size={14} className="text-[#1B3D8F] dark:text-[#85B7EB]" />
@@ -111,7 +120,10 @@ export const DateRangeFilter = ({
         >
           {/* Header */}
           <div className="mb-3 flex items-center justify-between">
-            <h3 id="date-filter-title" className="text-[13px] font-bold text-[#0e1f4d] dark:text-white">
+            <h3
+              id="date-filter-title"
+              className="text-[13px] font-bold text-[#0e1f4d] dark:text-white"
+            >
               Rango de fechas
             </h3>
             <button
@@ -129,8 +141,8 @@ export const DateRangeFilter = ({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {[
-                { label: "Hoy",     days: 0  },
-                { label: "7 días",  days: 7  },
+                { label: "Hoy", days: 0 },
+                { label: "7 días", days: 7 },
                 { label: "15 días", days: 15 },
                 { label: "30 días", days: 30 },
               ].map(({ label, days }) => (
@@ -138,7 +150,7 @@ export const DateRangeFilter = ({
                   key={label}
                   type="button"
                   onClick={() => handleQuickSelect(days)}
-                  className="rounded-md border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-500 transition hover:border-[#1B3D8F] hover:text-[#1B3D8F] dark:border-white/10 dark:bg-white/5 dark:text-white/40 dark:hover:border-[#85B7EB] dark:hover:text-[#85B7EB]"
+                  className="rounded-md border border-black/8 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-500 transition hover:border-[#1B3D8F] hover:text-[#1B3D8F] dark:border-white/10 dark:bg-white/5 dark:text-white/40 dark:hover:border-[#85B7EB] dark:hover:text-[#85B7EB]"
                 >
                   {label}
                 </button>
@@ -149,8 +161,20 @@ export const DateRangeFilter = ({
           {/* Inputs */}
           <div className="space-y-3">
             {[
-              { id: "fecha-desde", label: "Desde", value: desde, setter: setDesde, placeholder: placeholderDesde },
-              { id: "fecha-hasta", label: "Hasta",  value: hasta, setter: setHasta, placeholder: placeholderHasta },
+              {
+                id: "fecha-desde",
+                label: "Desde",
+                value: desde,
+                setter: setDesde,
+                placeholder: placeholderDesde,
+              },
+              {
+                id: "fecha-hasta",
+                label: "Hasta",
+                value: hasta,
+                setter: setHasta,
+                placeholder: placeholderHasta,
+              },
             ].map(({ id, label, value, setter, placeholder }) => (
               <div key={id}>
                 <label
@@ -170,12 +194,13 @@ export const DateRangeFilter = ({
                     if (error) setError("");
                   }}
                   className={`w-full rounded-lg border px-3 py-2 text-[13px] text-[#0e1f4d] outline-none transition
-                    dark:text-white dark:[color-scheme:dark]
+                    dark:text-white dark:scheme-dark
                     focus:border-[#1B3D8F] dark:focus:border-[#85B7EB]
                     disabled:cursor-not-allowed disabled:opacity-50
-                    ${error
-                      ? "border-[#CC1A2E] bg-[#FCEBEB] dark:bg-[#CC1A2E]/10"
-                      : "border-black/[0.10] bg-white dark:border-white/10 dark:bg-white/[0.03]"
+                    ${
+                      error
+                        ? "border-[#CC1A2E] bg-[#FCEBEB] dark:bg-[#CC1A2E]/10"
+                        : "border-black/10 bg-white dark:border-white/10 dark:bg-white/3"
                     }`}
                 />
               </div>
@@ -195,9 +220,11 @@ export const DateRangeFilter = ({
             <div className="mt-3 rounded-lg bg-[#EAF3DE] px-3 py-2 text-[11px] text-[#3B6D11] dark:bg-[#3B6D11]/20 dark:text-[#9FD97A]">
               <p className="font-semibold">Rango seleccionado:</p>
               <p>
-                {desde && `Desde: ${new Date(`${desde}T00:00:00`).toLocaleDateString("es-CU")}`}
+                {desde &&
+                  `Desde: ${new Date(`${desde}T00:00:00`).toLocaleDateString("es-CU")}`}
                 {desde && hasta && " · "}
-                {hasta && `Hasta: ${new Date(`${hasta}T23:59:59`).toLocaleDateString("es-CU")}`}
+                {hasta &&
+                  `Hasta: ${new Date(`${hasta}T23:59:59`).toLocaleDateString("es-CU")}`}
               </p>
             </div>
           )}
@@ -208,7 +235,7 @@ export const DateRangeFilter = ({
               type="button"
               onClick={handleClear}
               disabled={disabled || !hayFiltro}
-              className="flex-1 rounded-lg border border-black/[0.08] bg-white px-4 py-2.5 text-[12px] font-semibold text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
+              className="flex-1 rounded-lg border border-black/8 bg-white px-4 py-2.5 text-[12px] font-semibold text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
             >
               Limpiar
             </button>

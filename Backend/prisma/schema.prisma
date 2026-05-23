@@ -67,8 +67,8 @@ model ConsejoPopular {
   updatedAt DateTime @updatedAt
 
   // 🔗 Relaciones
-  presidente        Usuario?          @relation("PresidenteConsejo", fields: [presidenteId], references: [id])
-  presidenteId      String?           @unique
+  presidente        Usuario           @relation("PresidenteConsejo", fields: [presidenteId], references: [id])
+  presidenteId      String            @unique
   circunscripciones Circunscripcion[]
   puntoRutas        PuntoRuta[]
   solicituds        Solicitud[]
@@ -93,8 +93,8 @@ model Circunscripcion {
   consejoPopular   ConsejoPopular @relation(fields: [consejoPopularId], references: [id])
   consejoPopularId String
 
-  delegado   Usuario? @relation("DelegadoCircunscripcion", fields: [delegadoId], references: [id])
-  delegadoId String?  @unique
+  delegado   Usuario @relation("DelegadoCircunscripcion", fields: [delegadoId], references: [id])
+  delegadoId String  @unique
 
   zonas      Zona[] // 🔹 NUEVO: Una circunscripción se divide en varias zonas
   puntoRutas PuntoRuta[]
@@ -111,8 +111,8 @@ model Circunscripcion {
 
 model Zona {
   id        String   @id @default(uuid())
-  nombre    String // Ej: "Zona Norte", "Sector 2", "La Loma"
-  codigo    String?  @unique // Ej: ZONA-VER-01
+  nombre    String
+  codigo    String   @unique
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -120,7 +120,7 @@ model Zona {
   // 🔗 Relaciones
   circunscripcion   Circunscripcion @relation(fields: [circunscripcionId], references: [id])
   circunscripcionId String
-  cdrs              CDR[] // 🔹 NUEVO: Una zona agrupa varios CDRs
+  cdrs              CDR[]
   puntoRutas        PuntoRuta[]
 
   @@index([circunscripcionId])
@@ -133,12 +133,12 @@ model Zona {
 // ============================================================================
 
 model CDR {
-  id             String   @id @default(uuid())
-  numero         String   @unique // Ej: "CDR #123", "154"
-  direccion      String?
-  activo         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        String   @id @default(uuid())
+  numero    String   @unique
+  direccion String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 🔗 Relaciones
   zona       Zona        @relation(fields: [zonaId], references: [id])
@@ -186,12 +186,12 @@ model Ruta {
 // ============================================================================
 
 model PuntoRuta {
-  id             String        @id @default(uuid())
-  orden          Int // 0, 1, 2... define la secuencia
-  tipo           TipoPuntoRuta @default(INTERMEDIO)
-  nombre         String // Nombre del lugar/parada
-  direccion      String?
-  createdAt      DateTime      @default(now())
+  id        String        @id @default(uuid())
+  orden     Int // 0, 1, 2... define la secuencia
+  tipo      TipoPuntoRuta @default(INTERMEDIO)
+  nombre    String // Nombre del lugar/parada
+  direccion String?
+  createdAt DateTime      @default(now())
 
   // 🔗 Relación Principal: Pertenece a una Ruta
   ruta   Ruta   @relation(fields: [rutaId], references: [id])
@@ -258,8 +258,6 @@ model Vehiculo {
   id              String         @id @default(uuid())
   placa           String         @unique
   marca           String
-  modelo          String?
-  color           String?
   capacidadTanque Decimal        @db.Decimal(10, 2) // En litros
   kilometraje     Decimal        @db.Decimal(10, 2) // Kilometraje actual
   estado          EstadoVehiculo @default(DISPONIBLE)

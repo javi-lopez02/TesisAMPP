@@ -15,7 +15,7 @@ import { useAsamblea } from "../hooks/useAsamblea";
 import { useTipoCombustible } from "../hooks/useTipoCombustible";
 import { MovimientosTable } from "../components/movimientos/MovimientosTable";
 import { SidePanel } from "../components/movimientos/SidePanel";
-import { DateRangeFilter } from "../components/inventario/DateRangeFilter";
+import { DateRangeFilter } from "../components/globalComponents/DateRangeFilter";
 import { ResumenCard } from "../components/movimientos/ResumeCard";
 import { DistribucionTipos } from "../components/movimientos/DistribucionTipos";
 
