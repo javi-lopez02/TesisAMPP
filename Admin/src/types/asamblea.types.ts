@@ -11,7 +11,7 @@ export interface getAsamblea {
   _count?: {
     inventarios: number;
     movimientosCombustible: number;
-    asignacions: number;
+    asignaciones: number;
   };
 }
 

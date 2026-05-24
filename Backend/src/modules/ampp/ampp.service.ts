@@ -23,7 +23,7 @@ export const AsambleaService = {
             },
           },
         },
-        _count: { select: { asignacions: true } },
+        _count: { select: { asignaciones: true } },
       },
     });
     if (!asamblea)

@@ -51,7 +51,7 @@ export const SidePanel = ({
   );
 
   return (
-    <aside className="flex w-full flex-col border-l border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
+    <aside className="flex w-full flex-col border-l border-black/[0.07] rounded-2xl bg-white dark:border-white/[0.07] dark:bg-[#0e1a35] lg:w-85 lg:shrink-0">
       <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 dark:border-white/[0.07]">
         <div className="flex items-center gap-2.5">
           <div

@@ -12,7 +12,7 @@ export interface getTipoCombustible {
     inventarioCombustibles: number;
     movimientoCombustibles: number;
     solicituds: number;
-    asignacions: number;
+    asignaciones: number;
   };
 }
 

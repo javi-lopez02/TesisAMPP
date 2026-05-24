@@ -61,7 +61,7 @@ export const InventarioPage = () => {
     <div className="font-['Sora',sans-serif]">
       <div className="flex flex-col lg:flex-row lg:gap-0">
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Encabezado */}
+          {/* Encabezado - Ajuste responsive */}
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -77,8 +77,8 @@ export const InventarioPage = () => {
                 <span
                   className={
                     metricas.conStockBajo > 0
-                      ? "font-semibold text-[#CC1A2E]"
-                      : "text-gray-400"
+                      ? "font-semibold text-[#CC1A2E] dark:text-[#F09595]"
+                      : "text-gray-400 dark:text-gray-400"
                   }
                 >
                   {metricas.conStockBajo} con stock bajo
@@ -87,9 +87,9 @@ export const InventarioPage = () => {
             </div>
           </div>
 
-          {/* Tarjetas de resumen + barra niveles */}
+          {/* Tarjetas de resumen - Ajuste grid responsive */}
           {!loading && inventario !== null && inventario.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <ResumenCard
                 color="bg-[#1B3D8F]"
                 label="Total asignado"
@@ -119,16 +119,17 @@ export const InventarioPage = () => {
                 icon={RefreshCw}
               />
 
-              {/* Barra de niveles ocupa el ancho completo */}
-              <div className="col-span-2 sm:col-span-4">
+              {/* Barra de niveles - ocupa ancho completo en móvil */}
+              <div className="sm:col-span-2 lg:col-span-4">
                 <NivelStockBar inventario={inventario} />
               </div>
             </div>
           )}
 
-          {/* Filtros */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            <div className="relative min-w-50 flex-1">
+          {/* Filtros - Ajuste responsive */}
+          <div className="mb-4 flex flex-col sm:flex-row flex-wrap gap-2">
+            {/* Búsqueda - ocupa todo el ancho en móvil */}
+            <div className="relative w-full sm:min-w-50 sm:flex-1">
               <Search
                 size={13}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-white/20"
@@ -141,7 +142,9 @@ export const InventarioPage = () => {
                 className="w-full rounded-lg border border-black/8 bg-white py-2.5 pl-8 pr-3.5 text-[13px] text-[#0e1f4d] outline-none transition placeholder:text-gray-300 focus:border-[#1B3D8F] dark:border-white/10 dark:bg-white/3 dark:text-white dark:placeholder:text-white/20 dark:focus:border-[#85B7EB]"
               />
             </div>
-            <div className="flex overflow-hidden rounded-lg border border-black/8 bg-white dark:border-white/10 dark:bg-white/3">
+
+            {/* Filtro por stock - botón compacto */}
+            <div className="flex overflow-hidden rounded-lg border border-black/8 bg-white dark:border-white/10 dark:bg-white/3 w-full sm:w-auto">
               {(
                 [
                   {
@@ -164,14 +167,21 @@ export const InventarioPage = () => {
                 <button
                   key={key}
                   onClick={() => setFilterBajo(key)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition ${
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition ${
                     filterBajo === key
                       ? active
                       : "text-gray-400 hover:bg-gray-50 dark:text-white/40 dark:hover:bg-white/5"
                   }`}
                 >
                   {key === "todos" && <Filter size={10} />}
-                  {label}
+                  <span className="sm:hidden">
+                    {label === "Stock bajo"
+                      ? "Bajo"
+                      : label === "Normal"
+                        ? "Norm"
+                        : "Todos"}
+                  </span>
+                  <span className="hidden sm:inline">{label}</span>
                 </button>
               ))}
             </div>
@@ -179,9 +189,12 @@ export const InventarioPage = () => {
 
           {/* Alerta stock crítico */}
           {!loading && inventario !== null && metricas.conStockCritico > 0 && (
-            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#F09595] bg-[#FCEBEB] px-4 py-2.5">
-              <AlertTriangle size={14} className="shrink-0 text-[#CC1A2E]" />
-              <p className="text-[12px] font-medium text-[#791F1F]">
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#CC1A2E]/30 bg-[#CC1A2E]/10 px-4 py-2.5 dark:border-[#F09595]/30 dark:bg-[#CC1A2E]/20">
+              <AlertTriangle
+                size={14}
+                className="shrink-0 text-[#CC1A2E] dark:text-[#F09595]"
+              />
+              <p className="text-[12px] font-medium text-[#791F1F] dark:text-[#F09595]/90">
                 <span className="font-bold">
                   {metricas.conStockCritico} tipo(s)
                 </span>{" "}
@@ -193,7 +206,7 @@ export const InventarioPage = () => {
 
           {/* Estado: cargando */}
           {loading && inventario === null && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1B3D8F] border-t-transparent" />
               <p className="mt-3 text-[13px] font-semibold">
                 Cargando inventario...
@@ -201,18 +214,16 @@ export const InventarioPage = () => {
             </div>
           )}
 
-          {/* Tabla - AHORA RESPONSIVE */}
+          {/* ✅ Tabla con contenedor de scroll horizontal */}
           {!loading && inventario !== null && (
-            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              <div className="min-w-180">
-                <InventarioTable inventarios={filtered} />
-              </div>
+            <div className="overflow-x-auto">
+              <InventarioTable inventarios={filtered} />
             </div>
           )}
 
           {/* Pie */}
           {!loading && inventario !== null && filtered.length > 0 && (
-            <p className="mt-3 text-right text-[11px] text-gray-300 dark:text-white/20">
+            <p className="mt-3 text-right text-[11px] text-gray-400 dark:text-gray-400">
               Mostrando {filtered.length} de {(inventario ?? []).length}{" "}
               inventarios
             </p>

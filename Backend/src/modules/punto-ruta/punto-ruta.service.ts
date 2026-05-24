@@ -22,8 +22,6 @@ export const PuntoRutaService = {
 
     return puntos.map((p) => ({
       ...p,
-      coordenadasLat: p.coordenadasLat ?? null,
-      coordenadasLng: p.coordenadasLng ?? null,
     }));
   },
 
@@ -41,8 +39,6 @@ export const PuntoRutaService = {
     if (!punto) throw new Error("Punto de ruta no encontrado");
     return {
       ...punto,
-      coordenadasLat: punto.coordenadasLat ?? null,
-      coordenadasLng: punto.coordenadasLng ?? null,
     };
   },
 

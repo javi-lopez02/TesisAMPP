@@ -96,7 +96,7 @@ export const InventarioService = {
                 rol: true,
               },
             },
-            asignacions: {
+            asignaciones: {
               select: {
                 id: true,
                 codigo: true,

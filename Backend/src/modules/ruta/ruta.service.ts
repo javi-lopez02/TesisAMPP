@@ -16,7 +16,7 @@ export const RutaService = {
       where: { id, activa: true },
       include: {
         puntos: { orderBy: { orden: "asc" } },
-        _count: { select: { asignacions: true } },
+        _count: { select: { asignaciones: true } },
       },
     });
     if (!ruta) throw new Error("Ruta no encontrada o desactivada");
@@ -26,8 +26,6 @@ export const RutaService = {
       distanciaTotal: decimalToNumber(ruta.distanciaTotal),
       puntos: ruta.puntos.map((p) => ({
         ...p,
-        coordenadasLat: p.coordenadasLat ?? null,
-        coordenadasLng: p.coordenadasLng ?? null,
       })),
     };
   },

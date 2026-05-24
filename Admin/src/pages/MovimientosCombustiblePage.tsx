@@ -50,8 +50,7 @@ const FORM_INITIAL: FormState = resetMovimientoForm();
 
 // ── MovimientosCombustiblePage ────────────────────────────────────────────────
 export const MovimientosCombustiblePage = () => {
-  const { movimientos, loading, create, getAll } =
-    useMovimientoCombustible();
+  const { movimientos, loading, create, getAll } = useMovimientoCombustible();
   const { inventario: inventarios, getAll: getAllInventarios } =
     useInventario();
   const { tipoCombustible: tipos, getAll: getAllTipos } = useTipoCombustible();
@@ -105,31 +104,27 @@ export const MovimientosCombustiblePage = () => {
     const nuevoSaldo = inv ? Number(inv.saldoActual) : undefined;
 
     setInventarioInfo((prev) => {
-      if (prev.existe === nuevoExiste && prev.saldoActual === nuevoSaldo) {
+      if (prev.existe === nuevoExiste && prev.saldoActual === nuevoSaldo)
         return prev;
-      }
       return { existe: nuevoExiste, saldoActual: nuevoSaldo };
     });
   }, [form.asambleaId, form.tipoCombustibleId, inventarios]);
 
   // ── Métricas (usando helper) ───────────────────────────────────────────────
-  const metricas = useMemo((): MetricasMovimientos => {
-    return calcularMetricas(movimientos);
-  }, [movimientos]);
+  const metricas = useMemo(
+    (): MetricasMovimientos => calcularMetricas(movimientos),
+    [movimientos],
+  );
 
   // ── Filtros (usando helper) ────────────────────────────────────────────────
   const filtros: FiltrosMovimientos = useMemo(
-    () => ({
-      search,
-      filterTipo,
-      dateRange,
-    }),
+    () => ({ search, filterTipo, dateRange }),
     [search, filterTipo, dateRange],
   );
-
-  const filtered = useMemo(() => {
-    return aplicarFiltros(movimientos, filtros);
-  }, [movimientos, filtros]);
+  const filtered = useMemo(
+    () => aplicarFiltros(movimientos, filtros),
+    [movimientos, filtros],
+  );
 
   // ── Validación con Zod + lógica de inventario ──────────────────────────────
   const validate = useCallback((): boolean => {
@@ -195,7 +190,7 @@ export const MovimientosCombustiblePage = () => {
     <div className="font-['Sora',sans-serif]">
       <div className="flex flex-col lg:flex-row lg:gap-0">
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Encabezado */}
+          {/* Encabezado - Ajuste responsive */}
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -224,9 +219,9 @@ export const MovimientosCombustiblePage = () => {
             </button>
           </div>
 
-          {/* Tarjetas de resumen */}
+          {/* Tarjetas de resumen - Ajuste grid responsive */}
           {!loading && movimientos !== null && movimientos.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <ResumenCard
                 color="bg-[#1B3D8F]"
                 label="Total movimientos"
@@ -259,16 +254,17 @@ export const MovimientosCombustiblePage = () => {
                 icon={RefreshCw}
                 iconColor="bg-[#BA7517]/10 text-[#BA7517] dark:bg-[#BA7517]/20 dark:text-[#E8C57A]"
               />
-              <div className="col-span-2 sm:col-span-4">
+              {/* Distribución de tipos - ocupa ancho completo */}
+              <div className="sm:col-span-2 lg:col-span-4">
                 <DistribucionTipos movimientos={movimientos} />
               </div>
             </div>
           )}
 
-          {/* Filtros */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            {/* Búsqueda */}
-            <div className="relative min-w-50 flex-1">
+          {/* Filtros - Ajuste responsive: columna en móvil, fila en desktop */}
+          <div className="mb-4 flex flex-col sm:flex-row flex-wrap gap-2">
+            {/* Búsqueda - ocupa todo el ancho en móvil */}
+            <div className="relative w-full sm:min-w-50 sm:flex-1">
               <Search
                 size={13}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-white/20"
@@ -282,14 +278,14 @@ export const MovimientosCombustiblePage = () => {
               />
             </div>
 
-            {/* Filtro por tipo */}
-            <div className="relative flex overflow-hidden rounded-lg border border-black/8 bg-white dark:border-white/10 dark:bg-white/3">
+            {/* Filtro por tipo - compacto en móvil */}
+            <div className="relative flex overflow-hidden rounded-lg border border-black/8 bg-white dark:border-white/10 dark:bg-white/3 w-full sm:w-auto">
               <select
                 value={filterTipo}
                 onChange={(e) =>
                   setFilterTipo(e.target.value as typeof filterTipo)
                 }
-                className="cursor-pointer appearance-none bg-transparent px-3.5 py-2 pr-8 text-[12px] font-semibold text-gray-400 outline-none dark:scheme-dark dark:text-white/40"
+                className="cursor-pointer appearance-none bg-transparent px-3.5 py-2 pr-8 text-[12px] font-semibold text-gray-400 outline-none dark:text-white/40 w-full sm:w-auto"
               >
                 <option value="todos">Todos los tipos</option>
                 {(Object.keys(TIPO_LABELS) as TipoMovimiento[]).map((t) => (
@@ -313,16 +309,18 @@ export const MovimientosCombustiblePage = () => {
               </div>
             </div>
 
-            {/* Filtro por fecha */}
-            <DateRangeFilter
-              onApply={(desde, hasta) => setDateRange({ desde, hasta })}
-              onClear={() => setDateRange({})}
-              initialDesde={dateRange.desde?.split("T")[0]}
-              initialHasta={dateRange.hasta?.split("T")[0]}
-            />
+            {/* Filtro por fecha - ocupa ancho completo en móvil */}
+            <div className="w-full sm:w-auto">
+              <DateRangeFilter
+                onApply={(desde, hasta) => setDateRange({ desde, hasta })}
+                onClear={() => setDateRange({})}
+                initialDesde={dateRange.desde?.split("T")[0]}
+                initialHasta={dateRange.hasta?.split("T")[0]}
+              />
+            </div>
           </div>
 
-          {/* Chip de filtros activos */}
+          {/* Chip de filtros activos - wrap en móvil */}
           {(filterTipo !== "todos" || dateRange.desde || dateRange.hasta) && (
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-semibold text-gray-400 dark:text-white/30">
@@ -332,10 +330,18 @@ export const MovimientosCombustiblePage = () => {
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TIPO_COLORS[filterTipo as TipoMovimiento]}`}
                 >
-                  {TIPO_LABELS[filterTipo as TipoMovimiento]}
+                  <span className="sm:hidden">
+                    {TIPO_LABELS[filterTipo as TipoMovimiento].slice(0, 8)}
+                    {TIPO_LABELS[filterTipo as TipoMovimiento].length > 8
+                      ? "..."
+                      : ""}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {TIPO_LABELS[filterTipo as TipoMovimiento]}
+                  </span>
                   <button
                     onClick={() => setFilterTipo("todos")}
-                    className="opacity-60 hover:opacity-100"
+                    className="opacity-60 hover:opacity-100 ml-1"
                   >
                     ×
                   </button>
@@ -343,12 +349,23 @@ export const MovimientosCombustiblePage = () => {
               )}
               {(dateRange.desde || dateRange.hasta) && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1B3D8F]/10 px-2.5 py-1 text-[11px] font-semibold text-[#1B3D8F] dark:bg-[#1B3D8F]/20 dark:text-[#85B7EB]">
-                  {dateRange.desde && `Desde ${dateRange.desde.split("T")[0]}`}
-                  {dateRange.desde && dateRange.hasta && " · "}
-                  {dateRange.hasta && `Hasta ${dateRange.hasta.split("T")[0]}`}
+                  {dateRange.desde && (
+                    <span className="hidden sm:inline">
+                      Desde {dateRange.desde.split("T")[0]}
+                    </span>
+                  )}
+                  {dateRange.desde && <span className="sm:hidden">📅</span>}
+                  {dateRange.desde && dateRange.hasta && (
+                    <span className="hidden sm:inline"> · </span>
+                  )}
+                  {dateRange.hasta && (
+                    <span className="hidden sm:inline">
+                      Hasta {dateRange.hasta.split("T")[0]}
+                    </span>
+                  )}
                   <button
                     onClick={() => setDateRange({})}
-                    className="opacity-60 hover:opacity-100"
+                    className="opacity-60 hover:opacity-100 ml-1"
                   >
                     ×
                   </button>
@@ -362,7 +379,7 @@ export const MovimientosCombustiblePage = () => {
 
           {/* Estado: cargando */}
           {loading && movimientos === null && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-white/20">
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1B3D8F] border-t-transparent" />
               <p className="mt-3 text-[13px] font-semibold">
                 Cargando movimientos...
@@ -370,31 +387,29 @@ export const MovimientosCombustiblePage = () => {
             </div>
           )}
 
-          {/* Tabla - AHORA RESPONSIVE */}
+          {/* ✅ Tabla con contenedor de scroll horizontal */}
           {!loading && movimientos !== null && (
-            <div className="overflow-x-auto rounded-xl border border-black/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#0e1a35]">
-              <div className="min-w-225">
-                <MovimientosTable
-                  movimientos={filtered}
-                  getTipoLabel={getTipoLabel}
-                  getTipoColor={getTipoColor}
-                />
-              </div>
+            <div className="overflow-x-auto">
+              <MovimientosTable
+                movimientos={filtered}
+                getTipoLabel={getTipoLabel}
+                getTipoColor={getTipoColor}
+              />
             </div>
           )}
 
           {/* Pie */}
           {!loading && movimientos !== null && filtered.length > 0 && (
-            <p className="mt-3 text-right text-[11px] text-gray-300 dark:text-white/20">
+            <p className="mt-3 text-right text-[11px] text-gray-400 dark:text-gray-400">
               Mostrando {filtered.length} de {(movimientos ?? []).length}{" "}
               movimientos
             </p>
           )}
         </div>
 
-        {/* Panel lateral */}
+        {/* Panel lateral - Ajuste responsive: full-width en móvil */}
         {panelOpen && (
-          <div className="mt-5 lg:ml-4 lg:mt-0">
+          <div className="mt-5 lg:ml-4 lg:mt-0 w-full lg:w-auto">
             <SidePanel
               form={form}
               tiposCombustible={tipos}

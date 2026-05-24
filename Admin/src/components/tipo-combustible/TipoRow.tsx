@@ -57,7 +57,7 @@ export const TipoRow = memo(
         <StatPill value={tipo._count?.solicituds ?? 0} label="Sol." />
       </div>
       <div className="flex justify-center">
-        <StatPill value={tipo._count?.asignacions ?? 0} label="Asig." />
+        <StatPill value={tipo._count?.asignaciones ?? 0} label="Asig." />
       </div>
       <div className="flex justify-center">
         <StatPill

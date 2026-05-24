@@ -114,7 +114,7 @@ export const VehiculosTable = ({
 
             {/* Asignaciones */}
             <div className="flex justify-center">
-              <StatPill value={v._count?.asignacions ?? 0} label="Asig." />
+              <StatPill value={v._count?.asignaciones ?? 0} label="Asig." />
             </div>
 
             {/* Estado */}

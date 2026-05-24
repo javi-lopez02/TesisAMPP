@@ -44,7 +44,7 @@ export interface getVehiculo {
   chofer: getUsuario;
   _count: {
     mantenimientos: number;
-    asignacions: number;
+    asignaciones: number;
   };
 }
 

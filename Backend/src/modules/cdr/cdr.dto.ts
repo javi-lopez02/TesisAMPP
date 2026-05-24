@@ -8,9 +8,9 @@ export const createCdrSchema = z.object({
 });
 
 export const updateCdrSchema = z.object({
-  numero: z.string().min(1).optional(),
-  direccion: z.string().optional().nullable(),
-  zonaId: z.string().uuid("ID de Zona inválido").optional(),
+  numero: z.string().min(1),
+  direccion: z.string(),
+  zonaId: z.string().uuid("ID de Zona inválido"),
   activo: z.boolean().optional(),
 });
 

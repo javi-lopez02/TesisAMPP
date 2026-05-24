@@ -34,7 +34,7 @@ export const MovimientoCombustibleService = {
         tipoCombustible: true,
         usuario: true,
         inventarioCombustible: true,
-        asignacions: true,
+        asignaciones: true,
       },
     });
 
@@ -54,7 +54,7 @@ export const MovimientoCombustibleService = {
         tipoCombustible: true,
         usuario: true,
         inventarioCombustible: true,
-        asignacions: true,
+        asignaciones: true,
       },
     });
     if (!movimiento) throw new Error("Movimiento no encontrado");
@@ -203,7 +203,7 @@ export const MovimientoCombustibleService = {
           tipoCombustible: true,
           usuario: true,
           inventarioCombustible: true,
-          asignacions: true,
+          asignaciones: true,
         },
       });
 
