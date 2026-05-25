@@ -19,10 +19,5 @@ router.put(
   requireRole(Rol.ADMINISTRADOR, Rol.SUPERVISOR),
   RutaController.update,
 );
-router.delete(
-  "/:id",
-  requireRole(Rol.ADMINISTRADOR),
-  RutaController.softDelete,
-);
 
 export const rutaRoutes = router;

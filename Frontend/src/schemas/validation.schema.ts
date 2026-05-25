@@ -12,7 +12,7 @@ const emailField = z
 
 const passwordField = z
   .string()
-  .min(8, "La contraseña debe tener al menos 8 caracteres"); // BUG FIX: el mensaje decía 6 pero el mínimo era 8
+  .min(8, "La contraseña debe tener al menos 8 caracteres");
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 export const loginSchema = z.object({

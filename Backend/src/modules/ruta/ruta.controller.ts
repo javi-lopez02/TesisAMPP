@@ -15,7 +15,7 @@ export const RutaController = {
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const ruta = await RutaService.findById(req.params.id as string);
-      res.json({ success: true, ruta });
+      res.json({ success: true, data: ruta });
     } catch (error) {
       next(error);
     }
@@ -25,7 +25,7 @@ export const RutaController = {
     try {
       const data = createRutaSchema.parse(req.body);
       const ruta = await RutaService.create(data);
-      res.status(201).json({ success: true, message: "Ruta creada", ruta });
+      res.status(201).json({ success: true, message: "Ruta creada", data: ruta });
     } catch (error) {
       next(error);
     }
@@ -35,16 +35,7 @@ export const RutaController = {
     try {
       const data = updateRutaSchema.parse(req.body);
       const ruta = await RutaService.update(req.params.id as string, data);
-      res.json({ success: true, message: "Ruta actualizada", ruta });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  softDelete: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await RutaService.softDelete(req.params.id as string);
-      res.json({ success: true, message: "Ruta desactivada" });
+      res.json({ success: true, message: "Ruta actualizada", data: ruta });
     } catch (error) {
       next(error);
     }

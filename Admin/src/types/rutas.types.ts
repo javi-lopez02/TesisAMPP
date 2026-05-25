@@ -1,30 +1,26 @@
-export interface createRuta {
-  nombre: string;
-  descripcion?: string;
-  distanciaTotal: number;
-  tiempoEstimado?: number;
-}
+export type TipoPuntoRuta = "INICIO" | "INTERMEDIO" | "DESTINO";
 
-export interface updateRuta {
-  nombre?: string;
-  descripcion?: string | null;
-  distanciaTotal?: number;
-  tiempoEstimado?: number | null;
+export interface getPuntoRuta {
+  id: string;
+  orden: number;
+  tipo: TipoPuntoRuta;
+  nombre: string;
+  direccion: string;
+  consejoPopular: { id: string; nombre: string; codigo?: string };
+  circunscripcion: { id: string; nombre: string; codigo?: string };
+  zona: { id: string; nombre: string; codigo?: string };
+  cdr: { id: string; numero: string };
 }
 
 export interface getRuta {
   id: string;
   nombre: string;
-  descripcion: string | null;
+  descripcion: string;
   distanciaTotal: number;
-  tiempoEstimado: number | null;
+  tiempoEstimado: number;
+  activa: boolean | null;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface FormState {
-  nombre: string;
-  descripcion: string;
-  distanciaTotal: string;
-  tiempoEstimado: string;
+  puntos: getPuntoRuta[];
+  _count?: { solicitudes?: number; asignaciones?: number };
 }

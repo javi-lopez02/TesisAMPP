@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { StatPill } from "../components/globalComponents/StatPill";
 import { Badge } from "../components/globalComponents/Badge";
-import { SidePanel } from "../components/circunscripciones/SidePanel";
+import { ModalForm } from "../components/circunscripciones/ModalForm";
 import { DeleteModal } from "../components/circunscripciones/ModalDelete";
 import { useCircunscripciones } from "../hooks/useCircunscripciones";
 import type {
@@ -406,7 +406,7 @@ export const CircunscripcionPage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               delegados={delegados}

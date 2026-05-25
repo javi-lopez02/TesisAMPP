@@ -6,6 +6,8 @@ import {
   Outlet,
 } from "react-router-dom";
 import { useEffect } from "react";
+
+// ── Layouts ─────────────────────────────────────────────────────────────────
 import { MainLayout } from "./layouts/MainLayout";
 
 // ── Páginas ─────────────────────────────────────────────────────────────────
@@ -13,16 +15,22 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { RegisterPage } from "./components/auth/RegisterPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-// import { SolicitudesPage }      from "./pages/SolicitudesPage";
-// import { TanquesPage }          from "./pages/TanquesPage";
-// import { VehiculosPage }        from "./pages/VehiculosPage";
-// import { RutasPage }            from "./pages/RutasPage";
-// import { ConsejosPopularesPage} from "./pages/ConsejosPopularesPage";
-// import { ReportesPage }         from "./pages/ReportesPage";
 
+// // Solicitudes
+// import { SolicitudCreate } from "./pages/solicitudes/SolicitudCreate";
+// import { MisSolicitudes } from "./pages/solicitudes/MisSolicitudes";
+
+// // Asignaciones
+import { AsignacionesPage } from "./pages/AsignacionPage";
+
+// // Vehículos
+import { MantenimientosPage } from "./pages/MantenimientoPage";
+import { ReporteConsumoPage } from "./pages/ReporteConsumoPage";
+
+// ── Store ───────────────────────────────────────────────────────────────────
 import { useAuthStore } from "./store/authStore";
 
-// ── Roles ────────────────────────────────────────────────────────────────────
+// ── Tipos ───────────────────────────────────────────────────────────────────
 type Rol =
   | "ADMINISTRADOR"
   | "SUPERVISOR"
@@ -30,22 +38,7 @@ type Rol =
   | "PRESIDENTE_CONSEJO"
   | "CHOFER";
 
-// Permisos por ruta — quién puede acceder a cada path
-const ROUTE_ROLES: Record<string, Rol[]> = {
-  "/solicitudes": [
-    "ADMINISTRADOR",
-    "SUPERVISOR",
-    "DELEGADO",
-    "PRESIDENTE_CONSEJO",
-  ],
-  "/tanques": ["ADMINISTRADOR", "SUPERVISOR"],
-  "/vehiculos": ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
-  "/rutas": ["ADMINISTRADOR", "SUPERVISOR"],
-  "/consejos-populares": ["ADMINISTRADOR"],
-  "/reportes": ["ADMINISTRADOR", "SUPERVISOR", "CHOFER"],
-};
-
-// ── Spinner de carga ─────────────────────────────────────────────────────────
+// ── Spinner de carga (estilo institucional) ─────────────────────────────────
 const AuthSpinner = () => (
   <div
     role="status"
@@ -73,7 +66,7 @@ const AuthSpinner = () => (
   </div>
 );
 
-// ── Guard: requiere sesión activa ────────────────────────────────────────────
+// ── Guard: requiere sesión activa ───────────────────────────────────────────
 const ProtectedRoute = () => {
   const me = useAuthStore((s) => s.me);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -87,19 +80,18 @@ const ProtectedRoute = () => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// ── Guard: requiere uno de los roles permitidos ──────────────────────────────
-// Si el usuario está autenticado pero no tiene el rol → redirige a /
+// ── Guard: requiere uno de los roles permitidos ─────────────────────────────
 const RoleRoute = ({ allowed }: { allowed: Rol[] }) => {
   const role = useAuthStore((s) => s.user?.rol) as Rol | undefined;
-  // ADMINISTRADOR siempre pasa — tiene acceso total
+
+  // ADMINISTRADOR tiene acceso total
   if (role === "ADMINISTRADOR" || (role && allowed.includes(role))) {
     return <Outlet />;
   }
   return <Navigate to="/" replace />;
 };
 
-// ── Guard: rutas públicas ────────────────────────────────────────────────────
-// Con sesión activa → redirige a /
+// ── Guard: rutas públicas (redirige si ya está autenticado) ─────────────────
 const PublicRoute = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />;
@@ -107,14 +99,14 @@ const PublicRoute = () => {
 
 // ── Router ───────────────────────────────────────────────────────────────────
 const router = createBrowserRouter([
-  // ── Pública y libre — la única sin sesión requerida ──
+  // ── Rutas públicas ─────────────────────────────────────────────────────
   {
     path: "/",
     element: <MainLayout />,
     children: [{ index: true, element: <HomePage /> }],
   },
 
-  // ── Autenticación ──
+  // ── Autenticación (solo si NO está logueado) ───────────────────────────
   {
     element: <PublicRoute />,
     children: [
@@ -123,7 +115,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // ── Rutas protegidas (sesión requerida) ──
+  // ── Rutas protegidas (requiere sesión) ─────────────────────────────────
   {
     element: <ProtectedRoute />,
     children: [
@@ -131,51 +123,41 @@ const router = createBrowserRouter([
         path: "/",
         element: <MainLayout />,
         children: [
-          // TODOS los roles autenticados
+          // ── Solicitudes: Delegado, Presidente, Admin, Supervisor ───────
           {
-            element: <RoleRoute allowed={ROUTE_ROLES["/solicitudes"]} />,
+            element: (
+              <RoleRoute
+                allowed={["SUPERVISOR", "DELEGADO", "PRESIDENTE_CONSEJO"]}
+              />
+            ),
             children: [
-              // { path: "solicitudes", element: <SolicitudesPage /> },
+              {
+                path: "solicitudes",
+                children: [
+                  // { path: "crear", element: <SolicitudCreate /> },
+                  // { path: "mis-solicitudes", element: <MisSolicitudes /> },
+                ],
+              },
             ],
           },
 
-          // ADMINISTRADOR + SUPERVISOR + CHOFER
+          // ── Asignaciones: Chofer, Admin, Supervisor ────────────────────
           {
-            element: <RoleRoute allowed={ROUTE_ROLES["/vehiculos"]} />,
-            children: [
-              // { path: "vehiculos", element: <VehiculosPage /> },
-            ],
+            element: <RoleRoute allowed={["SUPERVISOR", "CHOFER"]} />,
+            children: [{ path: "asignaciones", element: <AsignacionesPage /> }],
           },
 
-          // ADMINISTRADOR + SUPERVISOR + CHOFER
+          // ── Vehículos: Chofer, Admin, Supervisor ───────────────────────
           {
-            element: <RoleRoute allowed={ROUTE_ROLES["/reportes"]} />,
+            element: <RoleRoute allowed={["SUPERVISOR", "CHOFER"]} />,
             children: [
-              // { path: "reportes", element: <ReportesPage /> },
-            ],
-          },
-
-          // ADMINISTRADOR + SUPERVISOR
-          {
-            element: <RoleRoute allowed={ROUTE_ROLES["/tanques"]} />,
-            children: [
-              // { path: "tanques", element: <TanquesPage /> },
-            ],
-          },
-
-          // ADMINISTRADOR + SUPERVISOR
-          {
-            element: <RoleRoute allowed={ROUTE_ROLES["/rutas"]} />,
-            children: [
-              // { path: "rutas", element: <RutasPage /> },
-            ],
-          },
-
-          // Solo ADMINISTRADOR (RoleRoute lo bloquea para el resto)
-          {
-            element: <RoleRoute allowed={ROUTE_ROLES["/consejos-populares"]} />,
-            children: [
-              // { path: "consejos-populares", element: <ConsejosPopularesPage /> },
+              {
+                path: "vehiculos",
+                children: [
+                  { path: "mantenimientos", element: <MantenimientosPage /> },
+                  { path: "reportes-consumo", element: <ReporteConsumoPage /> },
+                ],
+              },
             ],
           },
         ],
@@ -183,8 +165,9 @@ const router = createBrowserRouter([
     ],
   },
 
+  // ── 404 ────────────────────────────────────────────────────────────────
   { path: "*", element: <NotFoundPage /> },
 ]);
 
-// ── Provider ─────────────────────────────────────────────────────────────────
+// ── Export ───────────────────────────────────────────────────────────────────
 export const AppRouter = () => <RouterProvider router={router} />;

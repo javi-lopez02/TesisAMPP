@@ -2,20 +2,24 @@ import { prisma } from "../../config/prisma";
 import { numberToDecimal, decimalToNumber } from "../../utils/decimal";
 import {
   CreateSolicitudInput,
-  ApproveSolicitudInput,
-  RejectSolicitudInput,
-  CancelSolicitudInput,
+  ApproveInput,
+  RejectInput,
+  CancelInput,
+  GetSolicitudesInput,
 } from "./solicitud.dto";
 import {
   EstadoSolicitud,
   TipoMovimientoCombustible,
-  EstadoAsignacion,
+  Rol,
 } from "../../generated/prisma/enums";
 
-// Generador de código único: SOL-YYYYMMDD-XXX
+// ─────────────────────────────────────────────────────────────
+// GENERADOR DE CÓDIGO ÚNICO: SOL-YYYYMMDD-XXX
+// ─────────────────────────────────────────────────────────────
 const generateSolicitudCode = async (): Promise<string> => {
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+
   const count = await prisma.solicitud.count({
     where: {
       createdAt: {
@@ -24,34 +28,68 @@ const generateSolicitudCode = async (): Promise<string> => {
       },
     },
   });
+
   const consecutive = String(count + 1).padStart(3, "0");
   return `SOL-${dateStr}-${consecutive}`;
 };
 
+// ─────────────────────────────────────────────────────────────
+// VALIDACIÓN DE SALDO EN INVENTARIO
+// ─────────────────────────────────────────────────────────────
+const validateInventoryBalance = async (
+  tipoCombustibleId: string,
+  cantidadLitros: number,
+  asambleaId?: string,
+) => {
+  // Buscar inventario activo para este tipo de combustible
+  const inventario = await prisma.inventarioCombustible.findFirst({
+    where: {
+      tipoCombustibleId,
+      asambleaId: asambleaId || undefined,
+    },
+    orderBy: { fechaUltimaActualizacion: "desc" },
+  });
+
+  if (!inventario) {
+    throw new Error(
+      `No hay inventario registrado para este tipo de combustible`,
+    );
+  }
+
+  const saldoDisponible = Number(inventario.saldoActual);
+  if (saldoDisponible < cantidadLitros) {
+    throw new Error(
+      `Saldo insuficiente: disponible ${saldoDisponible}L, solicitado ${cantidadLitros}L`,
+    );
+  }
+
+  return inventario;
+};
+
+// ─────────────────────────────────────────────────────────────
+// SERVICIO PRINCIPAL
+// ─────────────────────────────────────────────────────────────
 export const SolicitudService = {
-  // ── LISTAR ────────────────────────────────────────────────────
-  async findAll(filters?: {
-    estado?: EstadoSolicitud;
-    usuarioId?: string;
-    tipoCombustibleId?: string;
-    fechaDesde?: Date;
-    fechaHasta?: Date;
-  }) {
+  // 🔹 LISTAR con filtros
+  async findAll(filters: GetSolicitudesInput) {
     const where: any = {};
-    if (filters?.estado) where.estado = filters.estado;
-    if (filters?.usuarioId) where.usuarioId = filters.usuarioId;
-    if (filters?.tipoCombustibleId)
+    if (filters.estado) where.estado = filters.estado;
+    if (filters.tipoSolicitud) where.tipoSolicitud = filters.tipoSolicitud;
+    if (filters.usuarioId) where.usuarioId = filters.usuarioId;
+    if (filters.tipoCombustibleId)
       where.tipoCombustibleId = filters.tipoCombustibleId;
-    if (filters?.fechaDesde || filters?.fechaHasta) {
-      where.fechaRequerida = {
-        ...(filters.fechaDesde && { gte: filters.fechaDesde }),
-        ...(filters.fechaHasta && { lte: filters.fechaHasta }),
+
+    if (filters.desde || filters.hasta) {
+      where.fechaSolicitada = {
+        ...(filters.desde && { gte: filters.desde }),
+        ...(filters.hasta && { lte: filters.hasta }),
       };
     }
 
     const solicitudes = await prisma.solicitud.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { fechaSolicitada: "desc" },
+      take: 100,
       include: {
         usuario: {
           select: { id: true, nombre: true, apellidos: true, rol: true },
@@ -60,30 +98,10 @@ export const SolicitudService = {
         consejoPopular: { select: { id: true, nombre: true, codigo: true } },
         circunscripcion: { select: { id: true, nombre: true, codigo: true } },
         ruta: {
-          select: {
-            id: true,
-            nombre: true,
-            distanciaTotal: true,
-            puntos: {
-              select: {
-                id: true,
-                orden: true,
-                tipo: true,
-                nombre: true,
-                consejoPopular: { select: { nombre: true } },
-                circunscripcion: { select: { nombre: true } },
-              },
-            },
-          },
+          select: { id: true, nombre: true, distanciaTotal: true },
+          include: { puntos: { orderBy: { orden: "asc" }, take: 5 } },
         },
-        asignacion: {
-          select: {
-            id: true,
-            codigo: true,
-            estado: true,
-            vehiculo: { select: { placa: true } },
-          },
-        },
+        asignacion: { select: { id: true, estado: true, codigo: true } },
       },
     });
 
@@ -96,15 +114,27 @@ export const SolicitudService = {
     }));
   },
 
+  // 🔹 CONSULTAR POR ID con trazabilidad completa
   async findById(id: string) {
     const solicitud = await prisma.solicitud.findUnique({
       where: { id },
       include: {
         usuario: {
-          select: { id: true, nombre: true, correo: true, rol: true },
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+            correo: true,
+            rol: true,
+          },
         },
         tipoCombustible: {
-          select: { id: true, nombre: true, precioPorLitro: true },
+          select: {
+            id: true,
+            nombre: true,
+            codigo: true,
+            precioPorLitro: true,
+          },
         },
         consejoPopular: { select: { id: true, nombre: true, codigo: true } },
         circunscripcion: { select: { id: true, nombre: true, codigo: true } },
@@ -123,14 +153,14 @@ export const SolicitudService = {
         },
         asignacion: {
           include: {
-            vehiculo: {
-              select: { id: true, placa: true, marca: true, estado: true },
-            },
-            responsable: { select: { id: true, nombre: true } },
+            vehiculo: { select: { placa: true, marca: true } },
+            responsable: { select: { nombre: true, rol: true } },
+            movimiento: { select: { tipo: true, cantidad: true } },
           },
         },
       },
     });
+
     if (!solicitud) throw new Error("Solicitud no encontrada");
 
     return {
@@ -145,76 +175,66 @@ export const SolicitudService = {
     };
   },
 
-  // ── CREAR SOLICITUD (con puntos de ruta) ──────────────────────
+  // 🔹 CREAR: genera Ruta + PuntoRuta + Solicitud en transacción
   async create(data: CreateSolicitudInput, usuarioId: string) {
+    // Validar que el usuario existe y está activo
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId, activo: true },
+    });
+    if (!usuario) throw new Error("Usuario no autorizado");
+
     // Validar tipo de combustible
-    const tipoComb = await prisma.tipoCombustible.findUnique({
+    const tipoCombustible = await prisma.tipoCombustible.findUnique({
       where: { id: data.tipoCombustibleId, activo: true },
     });
-    if (!tipoComb)
-      throw new Error("Tipo de combustible no encontrado o inactivo");
+    if (!tipoCombustible) throw new Error("Tipo de combustible no válido");
 
     // Validar jerarquía territorial si se proporciona
     if (data.consejoPopularId) {
       const cp = await prisma.consejoPopular.findUnique({
         where: { id: data.consejoPopularId, activo: true },
       });
-      if (!cp) throw new Error("Consejo Popular no encontrado o inactivo");
+      if (!cp) throw new Error("Consejo Popular no válido");
     }
     if (data.circunscripcionId) {
       const circ = await prisma.circunscripcion.findUnique({
         where: { id: data.circunscripcionId, activo: true },
       });
-      if (!circ) throw new Error("Circunscripción no encontrada o inactiva");
+      if (!circ) throw new Error("Circunscripción no válida");
     }
 
     // Generar código único
     const codigo = await generateSolicitudCode();
 
-    // Crear solicitud en estado PENDIENTE
-    const solicitud = await prisma.solicitud.create({
-      data: {
-        codigo,
-        descripcion: data.descripcion,
-        actividad: data.actividad,
-        tipoSolicitud: data.tipoSolicitud || "GENERAL",
-        fechaRequerida: data.fechaRequerida,
-        cantidadLitros: numberToDecimal(data.cantidadLitros),
-        estado: "PENDIENTE",
-        usuarioId,
-        tipoCombustibleId: data.tipoCombustibleId,
-        consejoPopularId: data.consejoPopularId,
-        circunscripcionId: data.circunscripcionId,
-      },
-    });
+    // Calcular distancia estimada (simplificado: 5 km por punto)
+    const distanciaEstimada = data.puntosRuta.length * 5;
 
-    // 🔹 Crear Ruta y PuntosRuta asociados (se guardan pero no se activan hasta aprobación)
-    if (data.puntosRuta.length > 0) {
-      const ruta = await prisma.ruta.create({
+    return await prisma.$transaction(async (tx) => {
+      // 1. Crear Ruta
+      const ruta = await tx.ruta.create({
         data: {
-          nombre: `Ruta para ${codigo}`,
-          descripcion: `Generada desde solicitud ${codigo}`,
-          distanciaTotal: numberToDecimal(0), // Se calculará al aprobar si hay coordenadas
-          activa: false, // Se activa al aprobar
+          nombre: `Ruta ${codigo}`,
+          descripcion: data.descripcion,
+          distanciaTotal: numberToDecimal(distanciaEstimada),
+          tiempoEstimado: data.puntosRuta.length * 15, // 15 min por punto
+          activa: true,
         },
       });
 
-      // Vincular ruta a la solicitud
-      await prisma.solicitud.update({
-        where: { id: solicitud.id },
-        data: { rutaId: ruta.id },
-      });
-
-      // Crear puntos de ruta
+      // 2. Crear Puntos de Ruta
       for (const punto of data.puntosRuta) {
-        await prisma.puntoRuta.create({
+        await tx.puntoRuta.create({
           data: {
             orden: punto.orden,
-            tipo: punto.tipo || "INTERMEDIO",
+            tipo:
+              punto.tipo ||
+              (punto.orden === 0
+                ? "INICIO"
+                : punto.orden === data.puntosRuta.length - 1
+                  ? "DESTINO"
+                  : "INTERMEDIO"),
             nombre: punto.nombre,
             direccion: punto.direccion,
-            coordenadasLat: punto.coordenadasLat,
-            coordenadasLng: punto.coordenadasLng,
             rutaId: ruta.id,
             consejoPopularId: punto.consejoPopularId,
             circunscripcionId: punto.circunscripcionId,
@@ -223,257 +243,245 @@ export const SolicitudService = {
           },
         });
       }
-    }
 
-    return await this.findById(solicitud.id);
+      // 3. Crear Solicitud vinculada a la ruta
+      const solicitud = await tx.solicitud.create({
+        data: {
+          codigo,
+          descripcion: data.descripcion,
+          actividad: data.actividad,
+          tipoSolicitud: data.tipoSolicitud || "GENERAL",
+          fechaRequerida: data.fechaRequerida,
+          cantidadLitros: numberToDecimal(data.cantidadLitros),
+          estado: "PENDIENTE",
+          observaciones: data.observaciones || "",
+          usuarioId,
+          tipoCombustibleId: data.tipoCombustibleId,
+          rutaId: ruta.id,
+          consejoPopularId: data.consejoPopularId || null,
+          circunscripcionId: data.circunscripcionId || null,
+        },
+        include: {
+          usuario: { select: { id: true, nombre: true, rol: true } },
+          tipoCombustible: { select: { id: true, nombre: true } },
+          ruta: { select: { id: true, nombre: true } },
+        },
+      });
+
+      return {
+        ...solicitud,
+        cantidadLitros: decimalToNumber(solicitud.cantidadLitros),
+      };
+    });
   },
 
-  // ── APROBAR: crea Ruta activa + Asignación + Movimiento de inventario ──
-  async approve(id: string, data: ApproveSolicitudInput, aprobadorId: string) {
+  // 🔹 APROBAR: valida inventario, crea Asignacion + Movimiento, actualiza saldo
+  async approve(id: string, data: ApproveInput, aprobadorId: string) {
     return await prisma.$transaction(async (tx) => {
-      // 1. Validar solicitud
+      // 1. Obtener solicitud con validaciones
       const solicitud = await tx.solicitud.findUnique({
         where: { id },
-        include: { ruta: { include: { puntos: true } }, tipoCombustible: true },
+        include: {
+          ruta: { include: { puntos: { orderBy: { orden: "asc" } } } },
+          tipoCombustible: true,
+          usuario: { select: { id: true, nombre: true, rol: true } },
+        },
       });
+
       if (!solicitud) throw new Error("Solicitud no encontrada");
       if (solicitud.estado !== "PENDIENTE") {
         throw new Error(
-          `Solo se pueden aprobar solicitudes en estado PENDIENTE (actual: ${solicitud.estado})`,
+          `Solo se pueden aprobar solicitudes PENDIENTE (actual: ${solicitud.estado})`,
         );
       }
 
-      // 2. Validar inventario disponible
-      const inventario = await tx.inventarioCombustible.findFirst({
+      // 2. Validar saldo en inventario
+      const inventario = await validateInventoryBalance(
+        solicitud.tipoCombustibleId,
+        Number(solicitud.cantidadLitros),
+      );
+
+      // 3. Generar código de asignación
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+      const asignacionCount = await tx.asignacion.count({
         where: {
-          tipoCombustibleId: solicitud.tipoCombustibleId,
+          createdAt: {
+            gte: new Date(today.setHours(0, 0, 0, 0)),
+            lt: new Date(today.setHours(23, 59, 59, 999)),
+          },
         },
       });
-      if (!inventario)
+      const asignacionCodigo = `ASN-${dateStr}-${String(asignacionCount + 1).padStart(3, "0")}`;
+
+      // 4. Seleccionar vehículo disponible del mismo tipo de combustible
+      const vehiculo = await tx.vehiculo.findFirst({
+        where: {
+          tipoCombustibleId: solicitud.tipoCombustibleId,
+          estado: "DISPONIBLE",
+          activo: true,
+        },
+        orderBy: { kilometraje: "asc" },
+      });
+      if (!vehiculo) {
         throw new Error(
-          "No hay inventario disponible para este tipo de combustible",
-        );
-      if (inventario.saldoActual.lt(solicitud.cantidadLitros)) {
-        throw new Error(
-          `Saldo insuficiente: disponible ${decimalToNumber(inventario.saldoActual)}L, solicitado ${decimalToNumber(solicitud.cantidadLitros)}L`,
+          "No hay vehículos disponibles para este tipo de combustible",
         );
       }
 
-      // 3. Activar/actualizar Ruta
-      if (solicitud.ruta) {
-        // Calcular distancia si hay coordenadas (simplificado)
-        const distanciaEstimada = solicitud.ruta.puntos.length * 2.5; // km por punto (ejemplo)
-        await tx.ruta.update({
-          where: { id: solicitud.rutaId! },
-          data: {
-            activa: true,
-            nombre: `Ruta ${solicitud.codigo}`,
-            distanciaTotal: numberToDecimal(distanciaEstimada),
-          },
-        });
-      }
+      // 5. Obtener asamblea por defecto (primera activa)
+      const asamblea = await tx.asambleaMunicipal.findFirst({
+        where: { activo: true },
+      });
+      if (!asamblea) throw new Error("No hay Asamblea Municipal configurada");
 
-      // 4. Crear Movimiento de Combustible (descontar del inventario)
+      // 6. Crear Movimiento de Combustible (descuento de inventario)
+      const saldoAnterior = inventario.saldoActual;
+      const cantidad = solicitud.cantidadLitros;
+      const saldoNuevo = saldoAnterior.sub(cantidad);
+
       const movimiento = await tx.movimientoCombustible.create({
         data: {
           tipo: "ASIGNACION_SOLICITUD",
-          cantidad: solicitud.cantidadLitros,
-          saldoAnterior: inventario.saldoActual,
-          saldoNuevo: inventario.saldoActual.sub(solicitud.cantidadLitros),
-          observaciones: `Asignación para solicitud ${solicitud.codigo}`,
-          asambleaId: inventario.asambleaId,
+          cantidad,
+          saldoAnterior,
+          saldoNuevo,
+          observaciones: `Asignación para ${solicitud.codigo}: ${solicitud.actividad}`,
+          asambleaId: asamblea.id,
           tipoCombustibleId: solicitud.tipoCombustibleId,
           usuarioId: aprobadorId,
           inventarioCombustibleId: inventario.id,
         },
       });
 
-      // 5. Actualizar inventario
-      await tx.inventarioCombustible.update({
-        where: { id: inventario.id },
+      // 7. Crear Asignación
+      await tx.asignacion.create({
         data: {
-          saldoActual: movimiento.saldoNuevo,
-          fechaUltimaActualizacion: new Date(),
-        },
-      });
-
-      // 6. Crear Asignación
-      const asignacion = await tx.asignacion.create({
-        data: {
-          codigo: `ASN-${solicitud.codigo.replace("SOL-", "")}`,
+          codigo: asignacionCodigo,
           cantidadLitros: solicitud.cantidadLitros,
-          odometroInicial: numberToDecimal(0), // Se actualizará al reportar
+          odometroInicial: vehiculo.kilometraje,
           estado: "ASIGNADO",
+          observaciones: solicitud.observaciones,
           solicitudId: solicitud.id,
-          vehiculoId: data.vehiculoId,
+          vehiculoId: vehiculo.id,
           tipoCombustibleId: solicitud.tipoCombustibleId,
           rutaId: solicitud.rutaId,
-          asambleaId: inventario.asambleaId,
-          responsableId: data.responsableId,
-          choferId: data.choferId,
+          asambleaId: asamblea.id,
+          responsableId: aprobadorId,
+          choferId: vehiculo.choferId,
           movimientoId: movimiento.id,
         },
       });
 
-      // 7. Actualizar estado de la solicitud
-      const updated = await tx.solicitud.update({
-        where: { id },
+      // 8. Actualizar inventario
+      await tx.inventarioCombustible.update({
+        where: { id: inventario.id },
         data: {
-          estado: "APROBADA",
-          observaciones: data.observaciones,
+          saldoActual: saldoNuevo,
+          fechaUltimaActualizacion: new Date(),
         },
+      });
+
+      // 9. Actualizar estado de solicitud y vehículo
+      await Promise.all([
+        tx.solicitud.update({
+          where: { id },
+          data: {
+            estado: "APROBADA",
+            observaciones:
+              solicitud.observaciones + ` | Aprobado: ${data.observaciones}`,
+          },
+        }),
+        tx.vehiculo.update({
+          where: { id: vehiculo.id },
+          data: { estado: "EN_USO" },
+        }),
+      ]);
+
+      // 10. Retornar solicitud con asignación creada
+      const updated = await tx.solicitud.findUnique({
+        where: { id },
         include: {
           asignacion: {
             include: {
-              vehiculo: { select: { placa: true } },
-              movimiento: true,
+              vehiculo: { select: { placa: true, marca: true } },
+              movimiento: { select: { id: true, tipo: true, cantidad: true } },
             },
           },
-          ruta: { include: { puntos: true } },
         },
       });
 
       return {
-        ...updated,
-        cantidadLitros: decimalToNumber(updated.cantidadLitros),
-        asignacion: {
-          ...updated.asignacion,
-          cantidadLitros: decimalToNumber(updated.asignacion!.cantidadLitros),
-          odometroInicial: decimalToNumber(updated.asignacion!.odometroInicial),
-        },
+        ...updated!,
+        cantidadLitros: decimalToNumber(updated!.cantidadLitros),
       };
     });
   },
 
-  // ── RECHAZAR ──────────────────────────────────────────────────
-  async reject(id: string, data: RejectSolicitudInput, rechazadorId: string) {
+  // 🔹 RECHAZAR: solo cambia estado + registra motivo
+  async reject(id: string, data: RejectInput, revisorId: string) {
     const solicitud = await prisma.solicitud.findUnique({ where: { id } });
     if (!solicitud) throw new Error("Solicitud no encontrada");
     if (solicitud.estado !== "PENDIENTE") {
       throw new Error(
-        `Solo se pueden rechazar solicitudes en estado PENDIENTE`,
+        `Solo se pueden rechazar solicitudes PENDIENTE (actual: ${solicitud.estado})`,
       );
     }
 
-    const updated = await prisma.solicitud.update({
+    return await prisma.solicitud.update({
       where: { id },
       data: {
         estado: "RECHAZADA",
-        observaciones: `Rechazado: ${data.motivo}`,
+        observaciones: `${solicitud.observaciones} | Rechazado: ${data.motivo}`,
       },
+      include: { usuario: { select: { nombre: true, correo: true } } },
     });
-
-    // Registrar auditoría opcional
-    await prisma.auditoria.create({
-      data: {
-        tabla: "Solicitud",
-        registroId: id,
-        accion: "ACTUALIZAR",
-        datosAnteriores: { estado: solicitud.estado },
-        datosNuevos: { estado: "RECHAZADA", observaciones: data.motivo },
-        usuarioId: rechazadorId,
-      },
-    });
-
-    return updated;
   },
 
-  // ── CANCELAR (solo por creador o ADMIN) ───────────────────────
-  async cancel(
-    id: string,
-    data: CancelSolicitudInput,
-    userId: string,
-    userRol: string,
-  ) {
-    const solicitud = await prisma.solicitud.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        estado: true,
-        usuarioId: true,
-        asignacion: { select: { id: true, estado: true } },
-      },
-    });
+  // 🔹 CANCELAR: solo el propietario puede cancelar solicitudes PENDIENTE
+  async cancel(id: string, data: CancelInput, usuarioId: string) {
+    const solicitud = await prisma.solicitud.findUnique({ where: { id } });
     if (!solicitud) throw new Error("Solicitud no encontrada");
-
-    // Validar permisos: creador o ADMIN
-    if (solicitud.usuarioId !== userId && userRol !== "ADMINISTRADOR") {
-      throw new Error("No tienes permiso para cancelar esta solicitud");
+    if (solicitud.usuarioId !== usuarioId) {
+      throw new Error("Solo el solicitante puede cancelar esta solicitud");
     }
-
-    // Validar estado: solo PENDIENTE o APROBADA (antes de EN_PROCESO)
-    if (!["PENDIENTE", "APROBADA"].includes(solicitud.estado)) {
+    if (solicitud.estado !== "PENDIENTE") {
       throw new Error(
-        `No se puede cancelar: estado actual "${solicitud.estado}"`,
+        `Solo se pueden cancelar solicitudes PENDIENTE (actual: ${solicitud.estado})`,
       );
-    }
-
-    // Si ya tiene asignación en EN_USO, no permitir cancelación
-    if (solicitud.asignacion?.estado === "EN_USO") {
-      throw new Error("No se puede cancelar: la asignación ya está en uso");
     }
 
     return await prisma.solicitud.update({
       where: { id },
       data: {
         estado: "CANCELADA",
-        observaciones: `Cancelado por usuario: ${data.motivo}`,
+        observaciones: `${solicitud.observaciones} | Cancelado por usuario: ${data.motivo}`,
       },
     });
   },
 
-  // ── MÉTODOS AUXILIARES ────────────────────────────────────────
-
-  // Obtener solicitudes de un usuario con sus estados
-  async getByUsuario(usuarioId: string, estados?: EstadoSolicitud[]) {
-    const where: any = { usuarioId };
-    if (estados?.length) where.estado = { in: estados };
-
-    return await prisma.solicitud.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        tipoCombustible: { select: { nombre: true, codigo: true } },
-        asignacion: {
-          select: {
-            id: true,
-            estado: true,
-            vehiculo: { select: { placa: true } },
-          },
-        },
-      },
+  // 🔹 MÉTODOS ADICIONALES PARA FLUJO OPERATIVO
+  async markInProcess(id: string, operadorId: string) {
+    const solicitud = await prisma.solicitud.findUnique({ where: { id } });
+    if (!solicitud || solicitud.estado !== "APROBADA") {
+      throw new Error("Solo solicitudes APROBADAS pueden pasar a EN_PROCESO");
+    }
+    return await prisma.solicitud.update({
+      where: { id },
+      data: { estado: "EN_PROCESO" },
     });
   },
 
-  // Validar si una solicitud puede ser editada (solo PENDIENTE y por su creador)
-  canEdit(solicitud: any, userId: string): boolean {
-    return solicitud.estado === "PENDIENTE" && solicitud.usuarioId === userId;
-  },
-
-  // Obtener transiciones permitidas para un estado
-  getAvailableTransitions(
-    estado: EstadoSolicitud,
-    userId: string,
-    solicitudUserId: string,
-    userRol: string,
-  ): string[] {
-    const transitions: Record<EstadoSolicitud, string[]> = {
-      PENDIENTE: ["APROBAR", "RECHAZAR", "CANCELAR"],
-      APROBADA: ["EN_PROCESO", "CANCELAR"], // CANCELAR solo ADMIN o creador
-      RECHAZADA: [],
-      EN_PROCESO: ["COMPLETADA", "CANCELAR"],
-      COMPLETADA: [],
-      CANCELADA: [],
-    };
-
-    const allowed = transitions[estado] || [];
-
-    // Filtrar CANCELAR por permisos
-    return allowed.filter((action) => {
-      if (action === "CANCELAR") {
-        return userId === solicitudUserId || userRol === "ADMINISTRADOR";
-      }
-      return true;
+  async markCompleted(id: string, operadorId: string) {
+    const solicitud = await prisma.solicitud.findUnique({ where: { id } });
+    if (!solicitud || solicitud.estado !== "EN_PROCESO") {
+      throw new Error(
+        "Solo solicitudes EN_PROCESO pueden marcarse como COMPLETADA",
+      );
+    }
+    return await prisma.solicitud.update({
+      where: { id },
+      data: { estado: "COMPLETADA" },
     });
   },
 };

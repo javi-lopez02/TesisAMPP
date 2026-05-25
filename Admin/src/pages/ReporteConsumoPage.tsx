@@ -13,7 +13,7 @@ import type {
   getReporte,
 } from "../types/reporte-consumo.types";
 import { ReportesTable } from "../components/reporte-consumo/ReportesTable";
-import { SidePanel } from "../components/reporte-consumo/SidePanel";
+import { ModalForm } from "../components/reporte-consumo/ModalForm";
 import {
   aplicarFiltrosReportes,
   type FiltrosReportes,
@@ -281,7 +281,7 @@ export const ReporteConsumoPage = () => {
 
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               asignaciones={asignaciones}

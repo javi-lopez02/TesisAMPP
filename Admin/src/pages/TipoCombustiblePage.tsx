@@ -8,7 +8,7 @@ import type {
 } from "../types/tipo-combustible.types";
 import { DeleteModal } from "../components/tipo-combustible/ModalDelete";
 import { TipoRow } from "../components/tipo-combustible/TipoRow";
-import { SidePanel } from "../components/tipo-combustible/SidePanel";
+import { ModalForm } from "../components/tipo-combustible/ModalForm";
 import type { FormMode } from "../types/globalTypes";
 
 import {
@@ -32,14 +32,8 @@ import {
 const FORM_INITIAL: FormState = resetTipoCombustibleForm();
 
 export const TipoCombustiblePage = () => {
-  const {
-    tipoCombustible,
-    loading,
-    create,
-    update,
-    getAll,
-    softDelete,
-  } = useTipoCombustible();
+  const { tipoCombustible, loading, create, update, getAll, softDelete } =
+    useTipoCombustible();
 
   const [search, setSearch] = useState("");
   const [filterActivo, setFilterActivo] = useState<
@@ -367,7 +361,7 @@ export const TipoCombustiblePage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               errors={formErrors}

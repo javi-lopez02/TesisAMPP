@@ -5,27 +5,22 @@ import {
   approveSolicitudSchema,
   rejectSolicitudSchema,
   cancelSolicitudSchema,
+  getSolicitudesSchema,
 } from "./solicitud.dto";
-import { EstadoSolicitud } from "../../generated/prisma/enums";
 
 export const SolicitudController = {
-  // ── LISTAR ────────────────────────────────────────────────────
+  // 🔹 LISTAR
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { estado, usuarioId, tipoCombustibleId, desde, hasta } = req.query;
-      const solicitudes = await SolicitudService.findAll({
-        estado: estado as EstadoSolicitud,
-        usuarioId: usuarioId as string,
-        tipoCombustibleId: tipoCombustibleId as string,
-        fechaDesde: desde ? new Date(desde as string) : undefined,
-        fechaHasta: hasta ? new Date(hasta as string) : undefined,
-      });
+      const filters = getSolicitudesSchema.parse(req.query);
+      const solicitudes = await SolicitudService.findAll(filters);
       res.json({ success: true, data: solicitudes });
     } catch (error) {
       next(error);
     }
   },
 
+  // 🔹 CONSULTAR POR ID
   findById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const solicitud = await SolicitudService.findById(
@@ -37,7 +32,7 @@ export const SolicitudController = {
     }
   },
 
-  // ── CREAR ─────────────────────────────────────────────────────
+  // 🔹 CREAR (con ruta y puntos)
   create: async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.usuario?.id)
@@ -52,13 +47,13 @@ export const SolicitudController = {
     }
   },
 
-  // ── APROBAR (crea asignación automática) ──────────────────────
+  // 🔹 APROBAR (crea Asignación automáticamente)
   approve: async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.usuario?.id)
         return res.status(401).json({ error: "No autenticado" });
       const data = approveSolicitudSchema.parse(req.body);
-      const result = await SolicitudService.approve(
+      const solicitud = await SolicitudService.approve(
         req.params.id as string,
         data,
         req.usuario.id,
@@ -66,88 +61,42 @@ export const SolicitudController = {
       res.json({
         success: true,
         message: "Solicitud aprobada y asignación creada",
-        data: result,
+        data: solicitud,
       });
     } catch (error) {
       next(error);
     }
   },
 
-  // ── RECHAZAR ──────────────────────────────────────────────────
+  // 🔹 RECHAZAR
   reject: async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.usuario?.id)
         return res.status(401).json({ error: "No autenticado" });
       const data = rejectSolicitudSchema.parse(req.body);
-      const result = await SolicitudService.reject(
+      const solicitud = await SolicitudService.reject(
         req.params.id as string,
         data,
         req.usuario.id,
       );
-      res.json({ success: true, message: "Solicitud rechazada", data: result });
+      res.json({ success: true, message: "Solicitud rechazada", data: solicitud });
     } catch (error) {
       next(error);
     }
   },
 
-  // ── CANCELAR ──────────────────────────────────────────────────
+  // 🔹 CANCELAR (solo por el solicitante)
   cancel: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.usuario?.id || !req.usuario?.rol) {
+      if (!req.usuario?.id)
         return res.status(401).json({ error: "No autenticado" });
-      }
       const data = cancelSolicitudSchema.parse(req.body);
-      const result = await SolicitudService.cancel(
+      const solicitud = await SolicitudService.cancel(
         req.params.id as string,
         data,
         req.usuario.id,
-        req.usuario.rol,
       );
-      res.json({ success: true, message: "Solicitud cancelada", data: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  // ── UTILIDADES ────────────────────────────────────────────────
-
-  // Obtener transiciones permitidas para una solicitud
-  getTransitions: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const solicitud = await SolicitudService.findById(
-        req.params.id as string,
-      );
-      if (!req.usuario?.id || !req.usuario?.rol) {
-        return res.status(401).json({ error: "No autenticado" });
-      }
-      const transitions = SolicitudService.getAvailableTransitions(
-        solicitud.estado,
-        req.usuario.id,
-        solicitud.usuarioId,
-        req.usuario.rol,
-      );
-      res.json({
-        success: true,
-        data: transitions,
-        estadoActual: solicitud.estado,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  // Listar solicitudes de un usuario
-  getByUsuario: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { estados } = req.query;
-      const estadosArray = estados
-        ? ((estados as string).split(",") as EstadoSolicitud[])
-        : undefined;
-      const solicitudes = await SolicitudService.getByUsuario(
-        req.params.usuarioId as string,
-        estadosArray,
-      );
-      res.json({ success: true, data: solicitudes });
+      res.json({ success: true, message: "Solicitud cancelada", data: solicitud });
     } catch (error) {
       next(error);
     }

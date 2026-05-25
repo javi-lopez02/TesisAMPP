@@ -10,7 +10,7 @@ router.use(authenticate);
 router.get("/", MantenimientoController.findAll);
 router.get("/vehiculo/:vehiculoId", MantenimientoController.findByVehiculo);
 router.get("/:id", MantenimientoController.findById);
-router.post("/", requireRole(Rol.ADMINISTRADOR, Rol.SUPERVISOR, Rol.DELEGADO), MantenimientoController.create);
+router.post("/", requireRole(Rol.ADMINISTRADOR, Rol.SUPERVISOR, Rol.CHOFER), MantenimientoController.create);
 router.put("/:id", requireRole(Rol.ADMINISTRADOR, Rol.SUPERVISOR), MantenimientoController.update);
 // router.delete("/:id", requireRole(Rol.ADMINISTRADOR), MantenimientoController.softDelete);
 

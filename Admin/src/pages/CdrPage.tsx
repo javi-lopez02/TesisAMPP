@@ -20,7 +20,7 @@ import type {
 } from "../types/cdrs.types";
 import { DeleteModal } from "../components/cdrs/ModalDelete";
 import { StatPill } from "../components/globalComponents/StatPill";
-import { SidePanel } from "../components/cdrs/SidePanel";
+import { ModalForm } from "../components/cdrs/ModalForm";
 import { Badge } from "../components/globalComponents/Badge";
 import type { FormMode } from "../types/globalTypes";
 import {
@@ -393,7 +393,7 @@ export const CdrsPage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               zonas={zonas}

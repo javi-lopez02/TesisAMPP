@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { StatPill } from "../components/globalComponents/StatPill";
 import { Badge } from "../components/globalComponents/Badge";
-import { SidePanel } from "../components/consejos-populares/SidePanel";
+import { ModalForm } from "../components/consejos-populares/ModalForm";
 import { DeleteModal } from "../components/consejos-populares/ModalDelete";
 import { useConsejoPopular } from "../hooks/useConsejoPopular";
 import type { FormState, getConsejo } from "../types/consejo.types";
@@ -378,8 +378,8 @@ export const ConsejosPopularesPage = () => {
 
         {/* ── Panel lateral ── */}
         {panelOpen && (
-          <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+          <div className="mt-5 lg:ml-4 lg:mt-0 rounded-2xl">
+            <ModalForm
               mode={panelMode}
               form={form}
               presidentes={presidentes}

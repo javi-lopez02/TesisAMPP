@@ -19,7 +19,7 @@ import type {
   getVehiculo,
 } from "../types/vehiculo.types";
 import { VehiculosTable } from "../components/vehiculo/VehiculoTable";
-import { SidePanel } from "../components/vehiculo/SidePanel";
+import { ModalForm } from "../components/vehiculo/ModalForm";
 import { DeleteModal } from "../components/vehiculo/ModalDelete";
 import { ResumenCard } from "../components/vehiculo/ResumenCard";
 
@@ -454,7 +454,7 @@ export const VehiculosPage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               tiposCombustible={tipos}

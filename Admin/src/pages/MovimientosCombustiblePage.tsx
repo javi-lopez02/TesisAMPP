@@ -14,7 +14,7 @@ import { useInventario } from "../hooks/useInventario";
 import { useAsamblea } from "../hooks/useAsamblea";
 import { useTipoCombustible } from "../hooks/useTipoCombustible";
 import { MovimientosTable } from "../components/movimientos/MovimientosTable";
-import { SidePanel } from "../components/movimientos/SidePanel";
+import { ModalForm } from "../components/movimientos/ModalForm";
 import { DateRangeFilter } from "../components/globalComponents/DateRangeFilter";
 import { ResumenCard } from "../components/movimientos/ResumeCard";
 import { DistribucionTipos } from "../components/movimientos/DistribucionTipos";
@@ -410,7 +410,7 @@ export const MovimientosCombustiblePage = () => {
         {/* Panel lateral - Ajuste responsive: full-width en móvil */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0 w-full lg:w-auto">
-            <SidePanel
+            <ModalForm
               form={form}
               tiposCombustible={tipos}
               asambleas={asambleas}

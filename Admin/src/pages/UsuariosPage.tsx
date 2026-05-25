@@ -24,7 +24,7 @@ import type {
 import { DeleteModal } from "../components/usuarios/ModalDelete";
 import { Badge } from "../components/globalComponents/Badge";
 import { AssignmentPill } from "../components/usuarios/StatPill";
-import { SidePanel } from "../components/usuarios/SidePanel";
+import { ModalForm } from "../components/usuarios/ModalForm";
 import type { FormMode } from "../types/globalTypes";
 
 // 🔹 IMPORTAR HELPERS DE FILTRO Y MÉTRICAS
@@ -556,7 +556,7 @@ export const UsuariosPage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               onChange={(partial) =>

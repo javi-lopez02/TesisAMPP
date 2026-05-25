@@ -7,7 +7,10 @@ export const RutaService = {
     return await prisma.ruta.findMany({
       where: { activa: true },
       orderBy: { nombre: "asc" },
-      include: { _count: { select: { puntos: true, solicituds: true } } },
+      include: {
+        _count: { select: { puntos: true, solicitudes: true } },
+        puntos: true,
+      },
     });
   },
 
@@ -61,25 +64,5 @@ export const RutaService = {
         throw new Error("Ruta no encontrada o desactivada");
       throw error;
     }
-  },
-
-  async softDelete(id: string) {
-    // Validar que no tenga solicitudes en proceso o asignaciones activas
-    const [solicitudesActivas, asignacionesActivas] = await Promise.all([
-      prisma.solicitud.count({
-        where: { rutaId: id, estado: { in: ["APROBADA", "EN_PROCESO"] } },
-      }),
-      prisma.asignacion.count({
-        where: { rutaId: id, estado: { in: ["ASIGNADO", "EN_USO"] } },
-      }),
-    ]);
-
-    if (solicitudesActivas > 0 || asignacionesActivas > 0) {
-      throw new Error(
-        "No se puede desactivar: tiene solicitudes o asignaciones en curso",
-      );
-    }
-
-    return await prisma.ruta.update({ where: { id }, data: { activa: false } });
   },
 };

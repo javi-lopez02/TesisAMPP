@@ -7,16 +7,23 @@ import { SolicitudController } from "./solicitud.controller";
 const router = Router();
 router.use(authenticate);
 
-// ── RUTAS PÚBLICAS (para todos los autenticados) ────────────────
+// 🔹 Lectura: todos los roles autenticados pueden consultar
 router.get("/", SolicitudController.findAll);
 router.get("/:id", SolicitudController.findById);
-router.get("/:id/transiciones", SolicitudController.getTransitions);
-router.get("/usuario/:usuarioId", SolicitudController.getByUsuario);
 
-// ── CREAR: cualquier rol autenticado puede solicitar ───────────
-router.post("/", SolicitudController.create);
+// 🔹 Crear: DELEGADO, PRESIDENTE_CONSEJO, SUPERVISOR pueden solicitar
+router.post(
+  "/",
+  requireRole(
+    Rol.DELEGADO,
+    Rol.PRESIDENTE_CONSEJO,
+    Rol.SUPERVISOR,
+    Rol.ADMINISTRADOR,
+  ),
+  SolicitudController.create,
+);
 
-// ── APROBAR/RECHAZAR: solo ADMIN o SUPERVISOR ─────────────────
+// 🔹 Transiciones de estado: solo roles de aprobación
 router.post(
   "/:id/approve",
   requireRole(Rol.ADMINISTRADOR, Rol.SUPERVISOR),
@@ -28,8 +35,7 @@ router.post(
   SolicitudController.reject,
 );
 
-// ── CANCELAR: creador o ADMIN ─────────────────────────────────
+// 🔹 Cancelar: solo el propietario de la solicitud
 router.post("/:id/cancel", SolicitudController.cancel);
-
 
 export const solicitudRoutes = router;

@@ -7,7 +7,6 @@ import { ReporteConsumoController } from "./reporte-consumo.controller";
 const router = Router();
 router.use(authenticate);
 
-// Lectura: roles operativos pueden consultar reportes
 router.get("/", ReporteConsumoController.findAll);
 router.get("/:id", ReporteConsumoController.findById);
 router.get(
@@ -26,7 +25,5 @@ router.put(
   requireRole(Rol.SUPERVISOR, Rol.ADMINISTRADOR, Rol.CHOFER),
   ReporteConsumoController.update,
 );
-
-// ⚠️ No hay DELETE: los reportes son inmutables por diseño contable
 
 export const reporteConsumoRoutes = router;

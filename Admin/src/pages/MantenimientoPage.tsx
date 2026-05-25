@@ -9,7 +9,7 @@ import type {
   getMantenimiento,
 } from "../types/mantenimiento.types";
 import { MantenimientosTable } from "../components/mantenimiento/MantenimientoTable";
-import { SidePanel } from "../components/mantenimiento/SidePanel";
+import { ModalForm } from "../components/mantenimiento/ModalForm";
 import { DeleteModal } from "../components/mantenimiento/ModalDelete";
 import { DateRangeFilter } from "../components/globalComponents/DateRangeFilter";
 import {
@@ -348,7 +348,7 @@ export const MantenimientosPage = () => {
 
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               vehiculos={vehiculos}

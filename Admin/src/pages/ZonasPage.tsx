@@ -13,7 +13,7 @@ import type { FormState, getZonas } from "../types/zonas.types";
 import { DeleteModal } from "../components/zonas/ModalDelete";
 import { StatPill } from "../components/globalComponents/StatPill";
 import { Badge } from "../components/globalComponents/Badge";
-import { SidePanel } from "../components/zonas/SidePanel";
+import { ModalForm } from "../components/zonas/ModalForm";
 import { useCircunscripciones } from "../hooks/useCircunscripciones";
 import type { FormMode } from "../types/globalTypes";
 
@@ -375,7 +375,7 @@ export const ZonasPage = () => {
         {/* ── Panel lateral ── */}
         {panelOpen && (
           <div className="mt-5 lg:ml-4 lg:mt-0">
-            <SidePanel
+            <ModalForm
               mode={panelMode}
               form={form}
               circunscripciones={circunscripciones}

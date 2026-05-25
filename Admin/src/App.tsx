@@ -33,6 +33,7 @@ import { MantenimientosPage } from "./pages/MantenimientoPage";
 import { ReporteConsumoPage } from "./pages/ReporteConsumoPage";
 // import { SolicitudesPage } from "./pages/SolicitudPage";
 import { AsignacionesPage } from "./pages/AsignacionPage";
+import { RutasPage } from "./pages/RutasPage";
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 const AuthSpinner = () => (
@@ -103,12 +104,11 @@ const router = createBrowserRouter([
           { path: "dashboard", element: <DashboardPage /> },
           { path: "usuarios", element: <UsuariosPage /> },
           // { path: "solicitudes",       element: <SolicitudesPage /> },
-          { path: "asignaciones",       element: <AsignacionesPage /> },
-          // { path: "tanques",           element: <TanquesPage /> },
+          { path: "asignaciones", element: <AsignacionesPage /> },
           { path: "vehiculos", element: <VehiculosPage /> },
           { path: "vehiculos/mantenimiento", element: <MantenimientosPage /> },
           { path: "vehiculos/reportes", element: <ReporteConsumoPage /> },
-          // { path: "rutas",             element: <RutasPage /> },
+          { path: "rutas", element: <RutasPage /> },
           { path: "consejos", element: <ConsejosPopularesPage /> },
           {
             path: "circunscripciones",
@@ -118,16 +118,10 @@ const router = createBrowserRouter([
           { path: "cdrs", element: <CdrsPage /> },
           { path: "combustible/tipo", element: <TipoCombustiblePage /> },
           { path: "combustible/inventario", element: <InventarioPage /> },
-          // {
-          //   path: "combustible/movimientos",
-          //   element: <InventarioMovimientosPage inventarioId="" />,
-          // },
           {
             path: "combustible/movimientos",
             element: <MovimientosCombustiblePage />,
           },
-
-          // { path: "reportes",          element: <ReportesPage /> },
         ],
       },
     ],
