@@ -8,7 +8,6 @@ export const ConsejoPopularService = {
         _count: {
           select: {
             circunscripciones: true,
-            solicitudes: true,
           },
         },
         presidente: true,

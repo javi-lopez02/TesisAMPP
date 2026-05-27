@@ -189,34 +189,38 @@ export const SolicitudService = {
     });
     if (!tipoCombustible) throw new Error("Tipo de combustible no válido");
 
-    // Validar jerarquía territorial si se proporciona
-    if (data.consejoPopularId) {
-      const cp = await prisma.consejoPopular.findUnique({
-        where: { id: data.consejoPopularId, activo: true },
-      });
-      if (!cp) throw new Error("Consejo Popular no válido");
-    }
-    if (data.circunscripcionId) {
-      const circ = await prisma.circunscripcion.findUnique({
-        where: { id: data.circunscripcionId, activo: true },
-      });
-      if (!circ) throw new Error("Circunscripción no válida");
+    // Validar que los puntos de ruta tengan entidades territoriales válidas
+    for (const punto of data.puntosRuta) {
+      const [cp, circ, zona, cdr] = await Promise.all([
+        prisma.consejoPopular.findUnique({
+          where: { id: punto.consejoPopularId, activo: true },
+        }),
+        prisma.circunscripcion.findUnique({
+          where: { id: punto.circunscripcionId, activo: true },
+        }),
+        prisma.zona.findUnique({ where: { id: punto.zonaId, activo: true } }),
+        prisma.cDR.findUnique({ where: { id: punto.cdrId, activo: true } }),
+      ]);
+
+      if (!cp)
+        throw new Error(`Consejo Popular no válido en punto ${punto.orden}`);
+      if (!circ)
+        throw new Error(`Circunscripción no válida en punto ${punto.orden}`);
+      if (!zona) throw new Error(`Zona no válida en punto ${punto.orden}`);
+      if (!cdr) throw new Error(`CDR no válido en punto ${punto.orden}`);
     }
 
     // Generar código único
     const codigo = await generateSolicitudCode();
 
-    // Calcular distancia estimada (simplificado: 5 km por punto)
-    const distanciaEstimada = data.puntosRuta.length * 5;
-
     return await prisma.$transaction(async (tx) => {
-      // 1. Crear Ruta
+      // 1. Crear Ruta con datos EXACTOS del frontend
       const ruta = await tx.ruta.create({
         data: {
           nombre: `Ruta ${codigo}`,
           descripcion: data.descripcion,
-          distanciaTotal: numberToDecimal(distanciaEstimada),
-          tiempoEstimado: data.puntosRuta.length * 15, // 15 min por punto
+          distanciaTotal: numberToDecimal(data.distanciaTotal), // ← Viene del frontend
+          tiempoEstimado: data.tiempoEstimado, // ← Viene del frontend
           activa: true,
         },
       });
@@ -244,7 +248,7 @@ export const SolicitudService = {
         });
       }
 
-      // 3. Crear Solicitud vinculada a la ruta
+      // 3. Crear Solicitud vinculada a la ruta (SIN consejoPopularId/circunscripcionId)
       const solicitud = await tx.solicitud.create({
         data: {
           codigo,
@@ -258,8 +262,7 @@ export const SolicitudService = {
           usuarioId,
           tipoCombustibleId: data.tipoCombustibleId,
           rutaId: ruta.id,
-          consejoPopularId: data.consejoPopularId || null,
-          circunscripcionId: data.circunscripcionId || null,
+          // ← consejoPopularId y circunscripcionId ELIMINADO
         },
         include: {
           usuario: { select: { id: true, nombre: true, rol: true } },

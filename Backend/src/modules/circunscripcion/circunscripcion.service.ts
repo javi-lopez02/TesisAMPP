@@ -22,7 +22,7 @@ export const CircunscripcionService = {
         include: {
           consejoPopular: true,
           delegado: true,
-          _count: { select: { zonas: true, solicitudes: true } },
+          _count: { select: { zonas: true, } },
         },
       });
   },

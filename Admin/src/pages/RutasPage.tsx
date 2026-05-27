@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, AlertTriangle, Route } from "lucide-react";
-// Importa tu hook real
+import { Search, Route } from "lucide-react";
 import { useRutas } from "../hooks/useRutas";
 import { RutasTable } from "../components/ruta/RutasTable";
 import { ModalPuntosRuta } from "../components/ruta/ModalPuntoRutas";
@@ -11,7 +10,7 @@ import {
 import type { getRuta } from "../types/rutas.types";
 
 export const RutasPage = () => {
-  const { rutas, loading, error, getAll } = useRutas();
+  const { rutas, loading, getAll } = useRutas();
   const [search, setSearch] = useState("");
   const [filterActiva, setFilterActiva] = useState<
     "todos" | "activa" | "inactiva"
@@ -98,14 +97,6 @@ export const RutasPage = () => {
               </p>
             </div>
           )}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#CC1A2E]">
-              <AlertTriangle size={32} />
-              <p className="mt-3 text-[13px] font-semibold">Error al cargar</p>
-              <p className="text-center text-[12px]">{error.join(", ")}</p>
-            </div>
-          )}
-
           {/* Table */}
           {!loading && rutas !== null && (
             <RutasTable rutas={filtered} onVerPuntos={setRutaSeleccionada} />

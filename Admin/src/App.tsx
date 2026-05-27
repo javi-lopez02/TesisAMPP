@@ -34,6 +34,7 @@ import { ReporteConsumoPage } from "./pages/ReporteConsumoPage";
 // import { SolicitudesPage } from "./pages/SolicitudPage";
 import { AsignacionesPage } from "./pages/AsignacionPage";
 import { RutasPage } from "./pages/RutasPage";
+import { NuevaSolicitudPage } from "./pages/NuevaSolicitudPage";
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 const AuthSpinner = () => (
@@ -103,7 +104,7 @@ const router = createBrowserRouter([
 
           { path: "dashboard", element: <DashboardPage /> },
           { path: "usuarios", element: <UsuariosPage /> },
-          // { path: "solicitudes",       element: <SolicitudesPage /> },
+          { path: "solicitudes/nueva",       element: <NuevaSolicitudPage /> },
           { path: "asignaciones", element: <AsignacionesPage /> },
           { path: "vehiculos", element: <VehiculosPage /> },
           { path: "vehiculos/mantenimiento", element: <MantenimientosPage /> },

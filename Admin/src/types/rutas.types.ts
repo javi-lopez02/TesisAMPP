@@ -1,3 +1,6 @@
+import type { getCircunscripcion } from "./circunscripcion.types";
+import type { getConsejo } from "./consejo.types";
+
 export type TipoPuntoRuta = "INICIO" | "INTERMEDIO" | "DESTINO";
 
 export interface getPuntoRuta {
@@ -22,5 +25,7 @@ export interface getRuta {
   createdAt: string;
   updatedAt: string;
   puntos: getPuntoRuta[];
+  consejoPopular: getConsejo;
+  circunscripcion: getCircunscripcion;
   _count?: { solicitudes?: number; asignaciones?: number };
 }

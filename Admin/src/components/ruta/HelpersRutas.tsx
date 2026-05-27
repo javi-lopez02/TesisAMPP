@@ -1,6 +1,6 @@
 import type { getRuta, TipoPuntoRuta } from "../../types/rutas.types";
 
-export const formatDistance = (km: number) => `${km.toFixed(2)} km`;
+export const formatDistance = (km: number) => `${Number(km).toFixed(2)} km`;
 export const formatTime = (minutes: number) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

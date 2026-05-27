@@ -6,7 +6,7 @@ export const RutaController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const rutas = await RutaService.findAll();
-      res.json({ success: true, rutas });
+      res.json({ success: true, data: rutas });
     } catch (error) {
       next(error);
     }

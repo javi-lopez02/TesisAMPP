@@ -50,7 +50,6 @@ model ConsejoPopular {
   presidenteId      String?           @unique
   circunscripciones Circunscripcion[]
   puntoRutas        PuntoRuta[]
-  solicitudes       Solicitud[]
 
   @@index([nombre])
   @@index([codigo])
@@ -69,7 +68,6 @@ model Circunscripcion {
   delegadoId       String?        @unique
   zonas            Zona[]
   puntoRutas       PuntoRuta[]
-  solicitudes      Solicitud[]
 
   @@index([consejoPopularId])
   @@index([codigo])
@@ -302,29 +300,25 @@ enum EstadoSolicitud {
 }
 
 model Solicitud {
-  id                String           @id @default(uuid())
-  codigo            String           @unique
+  id                String          @id @default(uuid())
+  codigo            String          @unique
   descripcion       String
   actividad         String
-  tipoSolicitud     TipoSolicitud    @default(GENERAL)
-  fechaSolicitada   DateTime         @default(now())
+  tipoSolicitud     TipoSolicitud   @default(GENERAL)
+  fechaSolicitada   DateTime        @default(now())
   fechaRequerida    DateTime
-  cantidadLitros    Decimal          @db.Decimal(10, 2)
-  estado            EstadoSolicitud  @default(PENDIENTE)
+  cantidadLitros    Decimal         @db.Decimal(10, 2)
+  estado            EstadoSolicitud @default(PENDIENTE)
   observaciones     String
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  usuario           Usuario          @relation(fields: [usuarioId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  usuario           Usuario         @relation(fields: [usuarioId], references: [id])
   usuarioId         String
-  tipoCombustible   TipoCombustible  @relation(fields: [tipoCombustibleId], references: [id])
+  tipoCombustible   TipoCombustible @relation(fields: [tipoCombustibleId], references: [id])
   tipoCombustibleId String
-  ruta              Ruta             @relation(fields: [rutaId], references: [id])
+  ruta              Ruta            @relation(fields: [rutaId], references: [id])
   rutaId            String
   asignacion        Asignacion?
-  consejoPopular    ConsejoPopular?  @relation(fields: [consejoPopularId], references: [id])
-  consejoPopularId  String?
-  circunscripcion   Circunscripcion? @relation(fields: [circunscripcionId], references: [id])
-  circunscripcionId String?
 
   @@index([estado])
   @@index([fechaSolicitada])

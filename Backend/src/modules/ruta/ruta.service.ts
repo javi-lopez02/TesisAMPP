@@ -9,7 +9,14 @@ export const RutaService = {
       orderBy: { nombre: "asc" },
       include: {
         _count: { select: { puntos: true, solicitudes: true } },
-        puntos: true,
+        puntos: {
+          include: {
+            consejoPopular: true,
+            circunscripcion: true,
+            zona: true,
+            cdr: true,
+          },
+        },
       },
     });
   },
