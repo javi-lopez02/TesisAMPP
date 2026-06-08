@@ -16,7 +16,6 @@ import {
 import type {
   FormState,
   FormPuntoRuta,
-  createSolicitud,
 } from "../types/solicitud.types";
 
 export const NuevaSolicitudPage = () => {
@@ -125,8 +124,10 @@ export const NuevaSolicitudPage = () => {
     }
 
     // Enviar al backend
-    await create(payload as unknown as createSolicitud);
-    navigate("/solicitudes");
+    const res = await create(payload);
+    if (res?.success) {
+      navigate("/solicitudes");
+    }
   }, [form, create, navigate]);
 
   const handleCancel = useCallback(() => {

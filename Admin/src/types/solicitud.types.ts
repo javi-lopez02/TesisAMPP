@@ -53,3 +53,54 @@ export interface FormPuntoRuta {
   zonaId: string;
   cdrId: string;
 }
+
+export type EstadoSolicitud =
+  | "PENDIENTE"
+  | "APROBADA"
+  | "RECHAZADA"
+  | "CANCELADA"
+  | "COMPLETADA";
+
+export interface getSolicitud {
+  id: string;
+  descripcion: string;
+  actividad: string;
+  tipoSolicitud: TipoSolicitud;
+  estado: EstadoSolicitud;
+  fechaRequerida: string;
+  fechaCreacion: string;
+  cantidadLitros: number;
+  tipoCombustible: { id: string; nombre: string; codigo: string };
+  observaciones: string | null;
+
+  // Relaciones
+  usuario: {
+    id: string;
+    nombre: string;
+    apellidos: string;
+    correo: string;
+  };
+
+  ruta: {
+    distanciaTotal: number;
+    tiempoEstimado: number;
+    puntos: {
+      id: string;
+      orden: number;
+      tipo: TipoPuntoRuta;
+      nombre: string;
+      direccion: string;
+      consejoPopular: { nombre: string };
+      circunscripcion: { nombre: string };
+      zona: { nombre: string };
+      cdr: { numero: string };
+    }[];
+  };
+
+  _count?: { reportes?: number };
+}
+
+export interface UpdateSolicitudEstado {
+  estado: EstadoSolicitud;
+  observacionesAprobacion?: string;
+}

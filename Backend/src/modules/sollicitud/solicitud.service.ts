@@ -95,11 +95,19 @@ export const SolicitudService = {
           select: { id: true, nombre: true, apellidos: true, rol: true },
         },
         tipoCombustible: { select: { id: true, nombre: true, codigo: true } },
-        consejoPopular: { select: { id: true, nombre: true, codigo: true } },
-        circunscripcion: { select: { id: true, nombre: true, codigo: true } },
         ruta: {
-          select: { id: true, nombre: true, distanciaTotal: true },
-          include: { puntos: { orderBy: { orden: "asc" }, take: 5 } },
+          include: {
+            puntos: {
+              include: {
+                consejoPopular: true,
+                circunscripcion: true,
+                zona: true,
+                cdr: true,
+              },
+              orderBy: { orden: "asc" },
+              take: 5,
+            },
+          },
         },
         asignacion: { select: { id: true, estado: true, codigo: true } },
       },
