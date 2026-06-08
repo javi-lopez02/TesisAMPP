@@ -29,6 +29,8 @@ import { ReporteConsumoPage } from "./pages/ReporteConsumoPage";
 
 // ── Store ───────────────────────────────────────────────────────────────────
 import { useAuthStore } from "./store/authStore";
+import { SolicitudesPage } from "./pages/SolicitudPage";
+import { NuevaSolicitudPage } from "./pages/NuevaSolicitudPage";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type Rol =
@@ -134,8 +136,8 @@ const router = createBrowserRouter([
               {
                 path: "solicitudes",
                 children: [
-                  // { path: "crear", element: <SolicitudCreate /> },
-                  // { path: "mis-solicitudes", element: <MisSolicitudes /> },
+                  { path: "crear", element: <NuevaSolicitudPage /> },
+                  { path: "mis-solicitudes", element: <SolicitudesPage /> },
                 ],
               },
             ],

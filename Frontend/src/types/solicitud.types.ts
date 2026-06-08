@@ -100,7 +100,13 @@ export interface getSolicitud {
   _count?: { reportes?: number };
 }
 
-export interface UpdateSolicitudEstado {
-  estado: EstadoSolicitud;
-  observacionesAprobacion?: string;
+
+export interface GetSolicitudesInput {
+  estado?: "PENDIENTE" | "APROBADA" | "RECHAZADA" | "CANCELADA" | "COMPLETADA";
+  tipoSolicitud?: "FISCALIZACION" | "DISTRIBUCION" | "EMERGENCIA" | "OTRO";
+  usuarioId?: string; // 🔹 Filtro por usuario/solicitante
+  tipoCombustibleId?: string;
+  desde?: string; // Fecha ISO: YYYY-MM-DD
+  hasta?: string; // Fecha ISO: YYYY-MM-DD
+  limite?: number; // Default: 100
 }
